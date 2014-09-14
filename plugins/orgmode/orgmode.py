@@ -65,6 +65,7 @@ class CompileOrgmode(PageCompiler):
                 '--eval', '(nikola-html-export "{0}" "{1}")'.format(
                     abspath(source), abspath(dest))
             ]
+            print(command)
             subprocess.check_call(command)
         except OSError as e:
             import errno

@@ -9,7 +9,7 @@
 ;;   (when (file-directory-p org-lisp-dir)
 ;;       (add-to-list 'load-path org-lisp-dir)
 ;;       (require 'org)))
-
+(add-to-list 'load-path "~/.emacs.d/elpa/org-20140908/")
 (require 'ox-html)
 
 ;;; Custom configuration for the export. ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
