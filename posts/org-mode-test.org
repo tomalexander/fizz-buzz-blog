@@ -11,3 +11,9 @@
 ** second item
 1. blue
 1. orange
+#+BEGIN_SRC cpp
+  int main(int argc, char** argv)
+  {
+    int bar = 7; // Set bar to 7
+  }
+#+END_SRC

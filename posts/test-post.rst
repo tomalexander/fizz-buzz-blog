@@ -7,3 +7,6 @@
 .. type: text
 
 Write your post here.
+.. code-block:: python
+:number-lines:
+print("Our virtues and our failings are inseparable")
