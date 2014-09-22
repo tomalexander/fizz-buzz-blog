@@ -1,0 +1,12 @@
+#+BEGIN_COMMENT
+.. title: Building a Faster find
+.. slug: building-a-faster-find
+.. date: 2014-09-22 16:34:49 UTC-07:00
+.. tags: private
+.. link: 
+.. description: 
+.. type: text
+#+END_COMMENT
+
+
+Write your post here.
