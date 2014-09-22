@@ -8,5 +8,6 @@
 .. type: text
 #+END_COMMENT
 
+At work I have to connect to a massive NFS share across the country to parse server logs. In order to automate this task I decided to write my own log parser, which revealed some interesting behavior. Naturally, the first step in parsing logs is finding them. I noticed that the way I was recursively listing directory contents was significantly faster than =find= from GNU findutils.
 
-Write your post here.
+
