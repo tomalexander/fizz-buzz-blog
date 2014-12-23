@@ -9,7 +9,7 @@
 ;;   (when (file-directory-p org-lisp-dir)
 ;;       (add-to-list 'load-path org-lisp-dir)
 ;;       (require 'org)))
-(add-to-list 'load-path "~/.emacs.d/elpa/org-20140908/")
+
 (require 'ox-html)
 
 ;;; Custom configuration for the export. ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -38,16 +38,6 @@
 ;;; Code highlighting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Use pygments highlighting for code
-(defun pygmentize (lang code)
-  "Use Pygments to highlight the given code and return the output"
-  (with-temp-buffer
-    (insert code)
-    (let ((lang (or (cdr (assoc lang org-pygments-language-alist)) "text")))
-      (shell-command-on-region (point-min) (point-max)
-                               (format "pygmentize -f html -g -l %s" lang)
-                               (buffer-name) t))
-
-    (buffer-string)))
 
 
 (defconst org-pygments-language-alist
@@ -92,17 +82,6 @@
 See: http://orgmode.org/worg/org-contrib/babel/languages.html and
 http://pygments.org/docs/lexers/ for adding new languages to the
 mapping. ")
-
-;; Override the html export function to use pygments
-(defun org-html-src-block (src-block contents info)
-  "Transcode a SRC-BLOCK element from Org to HTML.
-CONTENTS holds the contents of the item.  INFO is a plist holding
-contextual information."
-  (if (org-export-read-attribute :attr_html src-block :textarea)
-      (org-html--textarea-block src-block)
-    (let ((lang (org-element-property :language src-block))
-	  (code (org-html-format-code src-block info)))
-      (pygmentize lang code))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

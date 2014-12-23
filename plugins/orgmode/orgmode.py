@@ -62,10 +62,15 @@ class CompileOrgmode(PageCompiler):
             command = [
                 'emacs', '--batch',
                 '-l', join(dirname(abspath(__file__)), 'init.el'),
+                '-l', join(dirname(abspath(__file__)), 'htmlize.el'),
                 '--eval', '(nikola-html-export "{0}" "{1}")'.format(
                     abspath(source), abspath(dest))
             ]
-            print(command)
+
+            # Dirty walkaround for this plugin to run on Windows platform.
+            if os.name == 'nt':
+                command[5] = command[5].replace("\\", "\\\\")
+
             subprocess.check_call(command)
         except OSError as e:
             import errno

@@ -1,0 +1,27 @@
+#+BEGIN_COMMENT
+.. title: OpenSSL Sockets in C++ (part 1)
+.. slug: openssl-sockets-in-c++-part-1
+.. date: 2014-12-22 16:52:09 UTC-08:00
+.. tags: private
+.. link: 
+.. description: 
+.. type: text
+#+END_COMMENT
+
+
+The goal of this tutorial series is to walk through using posix sockets, from the ground up. Projects merely wishing to add networking would probably be best advised to look at already well established abstraction layers like [[http://www.boost.org/doc/libs/1_57_0/doc/html/boost_asio.html][Boost Asio]]. 
+
+To start off, we're going to create a basic http client. To start out lets define our http client's API as the following:
+#+NAME: http_client.h
+#+BEGIN_SRC cpp
+  #pragma once
+
+  #include <string>
+
+  namespace http_client
+  {
+      std::string get(const std::string & address, unsigned char retry = 5);
+  }
+#+END_SRC
+
+

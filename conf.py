@@ -294,10 +294,12 @@ REDIRECTIONS = []
 # And then do a backup, or run `nikola ping` from the `ping`
 # plugin (`nikola install_plugin ping`).
 # To do manual deployment, set it to []
-DEPLOY_COMMANDS = [
-    "nikola build",
-    "rsync -avz output/ paphus@paphus.com:~/fizz.buzz/",
-]
+DEPLOY_COMMANDS = {
+    "default": [
+        "nikola build",
+        "rsync -avz output/ paphus@paphus.com:~/fizz.buzz/",
+    ]
+}
 
 # For user.github.io/organization.github.io pages, the DEPLOY branch
 # MUST be 'master', and 'gh-pages' for other repositories.
