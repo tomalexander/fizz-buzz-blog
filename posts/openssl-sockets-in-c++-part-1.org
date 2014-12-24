@@ -9,7 +9,9 @@
 #+END_COMMENT
 
 
-The goal of this tutorial series is to walk through using posix sockets, from the ground up. Projects merely wishing to add networking would probably be best advised to look at already well established abstraction layers like [[http://www.boost.org/doc/libs/1_57_0/doc/html/boost_asio.html][Boost Asio]]. 
+The goal of this tutorial series is to walk through using posix sockets, from the ground up. Projects merely wishing to add networking would probably be best advised to look at already well established abstraction layers like [[http://www.boost.org/doc/libs/1_57_0/doc/html/boost_asio.html][Boost Asio]].
+
+* Initial stub
 
 To start off, we're going to create a basic http client. To start out lets define our http client's API as the following:
 #+NAME: http_client.h
@@ -17,11 +19,198 @@ To start off, we're going to create a basic http client. To start out lets defin
   #pragma once
 
   #include <string>
+  #include "util.h"
 
   namespace http_client
   {
-      std::string get(const std::string & address, unsigned char retry = 5);
+      std::string get(const std::string & address, u8 retry = 5);
   }
 #+END_SRC
 
+And we'll stub this out in the implementation with a dummy value
+#+NAME: http_client.cpp
+#+BEGIN_SRC cpp
+  #include "http_client.h"
 
+  namespace http_client
+  {
+      std::string get(const std::string & address, u8 retry)
+      {
+          return "NOT IMPLEMENTED";
+      }
+  }
+#+END_SRC
+
+To complete our stub, lets create a main.cpp to invoke it
+#+NAME: main.cpp
+#+BEGIN_SRC cpp
+  #include <iostream>
+  #include "http_client.h"
+
+  int main(int argc, char** argv)
+  {
+      std::cout << http_client::get("http://fizz.buzz/");
+      return 0;
+  }
+#+END_SRC
+
+and util.h to define some integer types
+#+NAME: util.h
+#+BEGIN_SRC cpp
+  #pragma once
+
+  #include <cinttypes>
+
+  typedef int8_t s8;
+  typedef int16_t s16;
+  typedef int32_t s32;
+  typedef int64_t s64;
+  typedef uint8_t u8;
+  typedef uint16_t u16;
+  typedef uint32_t u32;
+  typedef uint64_t u64;
+  typedef int_fast8_t fs8;
+  typedef int_fast16_t fs16;
+  typedef int_fast32_t fs32;
+  typedef int_fast64_t fs64;
+  typedef uint_fast8_t fu8;
+  typedef uint_fast16_t fu16;
+  typedef uint_fast32_t fu32;
+  typedef uint_fast64_t fu64;
+
+  #define maxs8 INT8_MAX
+  #define maxs16 INT16_MAX
+  #define maxs32 INT32_MAX
+  #define maxs64 INT64_MAX
+  #define maxu8 UINT8_MAX
+  #define maxu16 UINT16_MAX
+  #define maxu32 UINT32_MAX
+  #define maxu64 UINT64_MAX
+  #define maxfs8 INT_FAST8_MAX
+  #define maxfs16 INT_FAST16_MAX
+  #define maxfs32 INT_FAST32_MAX
+  #define maxfs64 INT_FAST64_MAX
+  #define maxfu8 UINT_FAST8_MAX
+  #define maxfu16 UINT_FAST16_MAX
+  #define maxfu32 UINT_FAST32_MAX
+  #define maxfu64 UINT_FAST64_MAX
+#+END_SRC
+
+Now lets compile that and make sure our stub works
+#+BEGIN_SRC sh
+  $ clang++ -std=c++11 src/http_client.cpp src/main.cpp -o sockstest
+  $ ./sockstest
+  NOT IMPLEMENTED
+#+END_SRC
+
+Perfect! So far we've done nothing related to sockets, just setting up the framework and getting it compiling.
+
+Now we need to start parsing the URLs passed into =http_client::get()= so we can extract the protocol, host, port, path, and query components. Now this URL parser will be very basic since the goal of this series is not HTTP but rather sockets.
+
+* Parsing URLs
+
+First, in =http_client.cpp= we will create an anonymous namespace. These are much like the "static" keyword from C in that functions declared inside an anonymous namespace will only be callable from inside that file.
+#+BEGIN_SRC cpp
+  namespace
+  {
+
+  }
+#+END_SRC
+
+For our URL parser we are going to use some new tools added in C++11 to allow functions to return multiple values; specifically std::tuple and std::tie. =std::tuple= is an immutable collection of values. =std::tie= creates a tuple whose values are references, so when we set the tie equal to a tuple, the values are copied into the elements in the tie.
+#+NAME: http_client.cpp
+#+BEGIN_SRC cpp
+  #include "http_client.h"
+  #include <tuple>
+
+  namespace
+  {
+      /**
+       ,* Break a URL down into its components
+       ,* 
+       ,* @param url The URL to parse
+       ,* @returns tuple(protocol http/https, host, path, query, port)
+       ,*/
+      std::tuple<std::string, std::string, std::string, std::string, u16> parse_url(const std::string & url)
+      {
+          std::string protocol;
+          std::string host;
+          std::string path;
+          std::string query;
+          u16 port;
+          // PARSING GOES HERE
+          return std::make_tuple(protocol, host, path, query, port);
+      }
+  }
+
+  namespace http_client
+  {
+      /**
+       ,* Perform an HTTP request and return the result
+       ,* 
+       ,* @param address The URL to request
+       ,* @param retry Number of times to try again on failed attempts
+       ,*/
+      std::string get(const std::string & address, u8 retry)
+      {
+          std::string protocol;
+          std::string host;
+          std::string path;
+          std::string query;
+          u16 port;
+          tie(protocol, host, path, query, port) = parse_url(address);
+          return protocol + " | " + host + " | " + std::to_string(port) + " | " + path + " | " + query + "\n";
+      }
+  }
+#+END_SRC
+
+To aid in the parsing we're going to add a =split()= function to do essentially what strtok does in C, but in a C++ fashion. We will place this in util.cpp and put its signature in util.h
+
+#+NAME: util.cpp
+#+BEGIN_SRC cpp
+  #include "util.h"
+
+  /**
+   ,* Split the haystack at most 1 time
+   ,* 
+   ,* @return A tuple containing the text preceding the needle and the
+   ,* text succeeding the needle. If the needle is not found then the
+   ,* tuple will contain the full haystack and an empty string
+   ,*/
+  std::tuple<std::string, std::string> split(const std::string & haystack, const std::string & needle)
+  {
+      size_t at = haystack.find(needle);
+      if (at == std::string::npos) return std::make_tuple(haystack, "");
+      
+      return std::make_tuple(haystack.substr(0, at), haystack.substr(at + needle.size()));
+  }
+#+END_SRC
+
+Now we throw in URL parsing. The parsing code is just simple substring searches. So far nothing up to this point has involved sockets so I apologize if any topics are under-covered.
+
+#+BEGIN_SRC cpp
+  std::string remaining;
+  tie(protocol, remaining) = split(url, "://"); // Grab the protocol
+  if (remaining.find("/") < remaining.find(":")) // If there is no port
+  {
+      port = -1;
+      tie(host, remaining) = split(remaining, "/");
+  } else { // There is a port
+      std::string temp_port;
+      tie(host, remaining) = split(remaining, ":");
+      tie(temp_port, remaining) = split(remaining, "/");
+      port = atoi(temp_port.c_str());
+  }
+  // Get the path and query
+  tie(path, query) = split(remaining, "?");
+          
+  path = "/" + path;
+#+END_SRC
+
+Running the test we should now get the components of the URL
+
+#+BEGIN_SRC text
+  http | fizz.buzz | 65535 | / | 
+#+END_SRC
+
+* Lets open some sockets!
