@@ -11,6 +11,8 @@
 
 The goal of this tutorial series is to walk through using posix sockets, from the ground up. Projects merely wishing to add networking would probably be best advised to look at already well established abstraction layers like [[http://www.boost.org/doc/libs/1_57_0/doc/html/boost_asio.html][Boost Asio]].
 
+The first two sections of this post will be unrelated to sockets for setting up the http client. Feel free to skip to [[socket][the socket section]].
+
 * Initial stub
 
 To start off, we're going to create a basic http client. To start out lets define our http client's API as the following:
@@ -213,4 +215,66 @@ Running the test we should now get the components of the URL
   http | fizz.buzz | 65535 | / | 
 #+END_SRC
 
-* Lets open some sockets!
+* <<socket>>Lets open some sockets!
+
+We're going to walk before we run so for this tutorial we're going to open a plain TCP synchronous socket. Later entries in this series will be porting our work to asynchronous sockets and adding support for OpenSSL.
+
+First, we need to do a DNS request in order to get the ip address of the host name passed into our http client. A DNS request is what turns "fizz.buzz" into 208.113.196.82. You can do this in a shell with the following command:
+#+BEGIN_SRC sh
+  $ dig +short fizz.buzz
+#+END_SRC
+
+To make a DNS query we will use =getaddrinfo(3)= from BSD/Posix sockets. For our limited use case we only care about the 1st, 2nd, and 4th parameters. The first is the string "fizz.buzz", the second can be either a port number or a protocol string, and the fourth is a pointer to a pointer to a =addrinfo= struct.
+
+#+BEGIN_SRC cpp
+  struct addrinfo* address_info;
+  struct sockaddr_in server;
+  int error = getaddrinfo(host.c_str(), protocol.c_str(), nullptr, &address_info);
+  if (error != 0)
+  {
+      throw string("Error getting address info: ") + string(gai_strerror(error));
+  }
+#+END_SRC
+
+The addrinfo struct that =address_info= now points to has the following fields:
+#+BEGIN_SRC cpp
+  struct addrinfo {
+      int     ai_flags;
+      int     ai_family;
+      int     ai_socktype;
+      int     ai_protocol;
+      size_t  ai_addrlen;
+      struct  sockaddr *ai_addr;
+      char    *ai_canonname;
+      struct  addrinfo *ai_next; // Used for linked lists
+  };
+#+END_SRC
+
+One thing to note here is the struct is set up as a singly linked list, which means that getaddrinfo can return multiple results. Next, we can connect to the ip address we just found through the =socket()= and =connect= call.
+
+#+BEGIN_SRC cpp
+  int connection = socket(address_info->ai_family, address_info->ai_socktype, address_info->ai_protocol);
+  if (!connection)
+  {
+      throw std::string("Unable to open socket");
+  }
+
+  // Establish a connection
+  error = connect(connection, address_info->ai_addr, address_info->ai_addrlen);
+  if (error == -1)
+  {
+      throw std::string("Unable to connect");
+  }
+#+END_SRC
+
+Now we're at the point where we can make an http request
+
+#+BEGIN_SRC cpp
+  std::string http_query = "GET " + path + " HTTP/1.1\r\n"    \
+      "Host: " + host + "\r\n\r\n";
+  char buffer[1024];
+
+  send(connection, http_query.c_str(), http_query.size(), 0);
+  ssize_t read_size = recv(connection, buffer, 1024, 0);
+  return std::string(buffer, read_size);
+#+END_SRC
