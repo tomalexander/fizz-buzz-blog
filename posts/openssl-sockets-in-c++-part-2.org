@@ -2,11 +2,76 @@
 .. title: OpenSSL Sockets in C++ (part 2)
 .. slug: openssl-sockets-in-c++-part-2
 .. date: 2014-12-25 13:30:00 UTC-08:00
-.. tags: private
+.. tags: 
 .. link: 
 .. description: 
 .. type: text
 #+END_COMMENT
 
+For part two of the series we will be switch the code from [[http://fizz.buzz/posts/openssl-sockets-in-c++-part-1.html][part 1]] to non-blocking sockets.
 
-Write your post here.
+First we need to add to our includes:
+#+BEGIN_SRC cpp
+  #include <fcntl.h>
+  #include <thread>
+#+END_SRC
+
+Then we need to go to where we connect the socket and use [[http://linux.die.net/man/3/fcntl][fcntl(3)]] to set the socket option to =O_NONBLOCK=. Its important, for our uses, that setting the socket to non-blocking occurs *after* the [[http://linux.die.net/man/3/connect][connect(3)]] call so we don't have to deal with the complexity of half-open sockets.
+
+#+BEGIN_SRC cpp
+  if (fcntl(connection, F_SETFL, O_NONBLOCK) < 0)
+  {
+      error_string = "Unable to set nonblocking: " + std::string(strerror(errno));
+      close(connection); // Cleanup
+      connection = -1;
+      continue;
+  }
+#+END_SRC
+
+If you compile the program now and run it you may notice some odd behavior; the program doesn't print any output! This is because when we call =recv= we're actually getting back a -1 and its setting errno to either EAGAIN or EWOULDBLOCK. In those cases, we need to keep polling for the information. Since our program does nothing else we're going to be throwing it in an endess loop producing the same behavior as a blocking socket, but its important to know that for more complicated programs we would want to be doing other behaviors when data isn't available.
+
+We're going to replace our read loop with the following that will continuously attempt to read until either an error that *isn't* EAGAIN or EWOULDBLOCK occurs or the socket closes.
+
+#+BEGIN_SRC cpp
+  for (bool stop = false; !stop;)
+  {
+      ssize_t read_size = recv(connection, buffer, BUFFER_SIZE, 0);
+      switch (read_size)
+      {
+        case -1: // We got an error, check errno
+          if (errno == EAGAIN || errno == EWOULDBLOCK)
+          {
+              std::this_thread::sleep_for(std::chrono::milliseconds(200));
+          } else {
+              std::cerr << "Error reading socket: " << strerror(errno) << '\n';
+              stop = true;
+          }
+          break;
+        case 0: // The socket has been closed on the other end
+          stop = true;
+          break;
+        default: // We actually read some data
+          std::cout << std::string(buffer, read_size);
+          break;
+      }
+  }
+#+END_SRC
+
+Its important to note that technically the =send= call in both the blocking and non-blocking examples could fail to send the entire request. Considering the miniscule size of our http request its pretty safe to assume that send will always send the full amount of data.
+
+Once again, lets compile, run, and test the program with valgrind and clang-analyzer.
+
+#+BEGIN_SRC sh
+  $ clang++ -std=c++11 -o sockets_part2 files/post_files/sockets_part_2/sockets_part2.cpp
+  $ ./sockets_part2
+  <html of page should show up here>
+  $ valgrind --leak-check=full ./sockets_part2
+  ...
+  All heap blocks were freed -- no leaks are possible
+  ...
+  $ scan-build clang++ -std=c++11 -o sockets_part2 files/post_files/sockets_part_2/sockets_part2.cpp
+  ...
+  scan-build: No bugs found.
+#+END_SRC
+
+Looks good! In part 3 we will move all of our socket code into its own class so we can easily re-use it and also use a common interface for SSL sockets and normal sockets.

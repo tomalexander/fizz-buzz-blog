@@ -52,7 +52,7 @@ To make a DNS request we will be using [[https://www.freebsd.org/cgi/man.cgi?que
 
 The second parameter to getaddrinfo defines the port. This can be a string for a protocol like "http" or "https", or it can be a numeric string like "80" and "443".
 
-The third parameter to getaddrinfo is a set of "hints" indicating what type of connection we're looking to open. The hints param is optional and could just be a nullptr in this case without issue. In our hints we're setting =ai_family= to =PF_UNSPEC= to indicate that we are fine with any protocol. We're also setting =ai_socktype= to =SOCK_STREAM= to indicate that we wish to open a two way byte stream.
+The third parameter to getaddrinfo is a set of "hints" indicating what type of connection we're looking to open. The hints param is optional and could just be a nullptr in this case without issue. In our hints we're setting =ai_family= to =PF_UNSPEC= to indicate that we are fine with any protocol. We're also setting =ai_socktype= to =SOCK_STREAM= to indicate that we wish to open a TCP byte stream.
 
 The =addrinfo= struct that =address_info= now points to looks like this:
 #+BEGIN_SRC text
@@ -129,13 +129,13 @@ Now all we have left to do is cleanup after ourselves
 #+END_SRC
 Awesome! Lets compile and run the program
 #+BEGIN_SRC sh
-  $ clang++ --std=c++11 -o sockets_part1 files/sockets_part1.cpp
+  $ clang++ -std=c++11 -o sockets_part1 files/sockets_part1.cpp
   $ ./sockets_part1
   <html source of page should print here>
 #+END_SRC
 Lets also check for memory leaks and run some static analysis
 #+BEGIN_SRC sh
   $ valgrind --leak-check=full ./sockets_part1
-  $ scan-build clang++ --std=c++11 -o sockets_part1 files/sockets_part1.cpp
+  $ scan-build clang++ -std=c++11 -o sockets_part1 files/sockets_part1.cpp
 #+END_SRC
-Looks good! In part 2 we will port this code over to non-blocking sockets. The source code for this post is available [[http://fizz.buzz/post_files/sockets_part_1/sockets_part1.cpp][here]] under the ISC license.
+Looks good! In [[http://fizz.buzz/posts/openssl-sockets-in-c++-part-2.html][part 2]] we will port this code over to non-blocking sockets. The source code for this post is available [[http://fizz.buzz/post_files/sockets_part_1/sockets_part1.cpp][here]] under the ISC license.
