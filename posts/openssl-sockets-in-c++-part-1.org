@@ -11,8 +11,6 @@
 
 The goal of this tutorial series is to walk through using posix sockets, from the ground up. Projects merely wishing to add networking would probably be best advised to look at already well established abstraction layers like [[http://www.boost.org/doc/libs/1_57_0/doc/html/boost_asio.html][Boost Asio]].
 
-* Initial stub
-
 To start off, we're going to create a basic http request. To keep things simple, for the first iteration, we're going to use a plain TCP blocking socket. First create a cpp file (mine is named sockets\_part1.cpp). First some constants and includes:
 
 #+NAME: sockets_part1.cpp
