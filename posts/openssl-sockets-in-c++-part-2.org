@@ -1,0 +1,12 @@
+#+BEGIN_COMMENT
+.. title: OpenSSL Sockets in C++ (part 2)
+.. slug: openssl-sockets-in-c++-part-2
+.. date: 2014-12-25 13:30:00 UTC-08:00
+.. tags: private
+.. link: 
+.. description: 
+.. type: text
+#+END_COMMENT
+
+
+Write your post here.
