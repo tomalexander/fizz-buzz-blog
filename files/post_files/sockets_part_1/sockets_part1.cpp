@@ -1,8 +1,27 @@
+/*
+Copyright (c) 2014, Tom Alexander <tom@fizz.buzz>
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*/
 #include <iostream>
 #include <string>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <unistd.h>
 
+/**
+ * Includes used for dumping addrinfo struct 
+ */
 #include <sstream>
 #include <iomanip>
 #include <arpa/inet.h>
@@ -110,20 +129,31 @@ int main(int argc, char** argv)
     {
         throw std::string("Error getting address info: ") + std::string(gai_strerror(error));
     }
-    print_addrinfo(address_info);
-    return 0;
 
-    int connection = socket(address_info->ai_family, address_info->ai_socktype, address_info->ai_protocol);
-    if (!connection)
+    int connection = -1;
+    std::string error_string = "";
+    for (struct addrinfo* current_address_info = address_info; current_address_info != nullptr; current_address_info = current_address_info->ai_next)
     {
-        throw std::string("Unable to open socket");
+        connection = socket(current_address_info->ai_family, current_address_info->ai_socktype, current_address_info->ai_protocol);
+        if (connection < 0)
+        {
+            error_string = "Unable to open socket";
+            continue;
+        }
+        
+        if (connect(connection, current_address_info->ai_addr, current_address_info->ai_addrlen) < 0)
+        {
+            error_string = "Unable to connect";
+            close(connection); // Cleanup
+            connection = -1;
+            continue;
+        }
+
+        break; // Success
     }
-    
-    // Establish a connection
-    error = connect(connection, address_info->ai_addr, address_info->ai_addrlen);
-    if (error == -1)
+    if (connection < 0) // If we failed to connect
     {
-        throw std::string("Unable to connect");
+        throw error_string;
     }
     
     std::string http_query = "GET / HTTP/1.1\r\n"    \
@@ -138,5 +168,8 @@ int main(int argc, char** argv)
     {
         std::cout << std::string(buffer, read_size);
     }
+
+    close(connection);
+    freeaddrinfo(address_info);
     return 0;
 }
