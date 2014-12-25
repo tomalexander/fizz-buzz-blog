@@ -11,270 +11,62 @@
 
 The goal of this tutorial series is to walk through using posix sockets, from the ground up. Projects merely wishing to add networking would probably be best advised to look at already well established abstraction layers like [[http://www.boost.org/doc/libs/1_57_0/doc/html/boost_asio.html][Boost Asio]].
 
-The first two sections of this post will be unrelated to sockets for setting up the http client. Feel free to skip to [[socket][the socket section]].
-
 * Initial stub
 
-To start off, we're going to create a basic http client. To start out lets define our http client's API as the following:
-#+NAME: http_client.h
-#+BEGIN_SRC cpp
-  #pragma once
+To start off, we're going to create a basic http request. To keep things simple, for the first iteration, we're going to use a plain TCP blocking socket. First create a cpp file (mine is named sockets\_part1.cpp). First some constants and includes:
 
-  #include <string>
-  #include "util.h"
-
-  namespace http_client
-  {
-      std::string get(const std::string & address, u8 retry = 5);
-  }
-#+END_SRC
-
-And we'll stub this out in the implementation with a dummy value
-#+NAME: http_client.cpp
-#+BEGIN_SRC cpp
-  #include "http_client.h"
-
-  namespace http_client
-  {
-      std::string get(const std::string & address, u8 retry)
-      {
-          return "NOT IMPLEMENTED";
-      }
-  }
-#+END_SRC
-
-To complete our stub, lets create a main.cpp to invoke it
-#+NAME: main.cpp
+#+NAME: sockets_part1.cpp
 #+BEGIN_SRC cpp
   #include <iostream>
-  #include "http_client.h"
+  #include <string>
+  #include <sys/socket.h>
+  #include <netdb.h>
+
+  namespace
+  {
+      const char HOST[] = "fizz.buzz";
+      const size_t BUFFER_SIZE = 1024;
+  }
 
   int main(int argc, char** argv)
   {
-      std::cout << http_client::get("http://fizz.buzz/");
       return 0;
   }
 #+END_SRC
 
-and util.h to define some integer types
-#+NAME: util.h
-#+BEGIN_SRC cpp
-  #pragma once
-
-  #include <cinttypes>
-
-  typedef int8_t s8;
-  typedef int16_t s16;
-  typedef int32_t s32;
-  typedef int64_t s64;
-  typedef uint8_t u8;
-  typedef uint16_t u16;
-  typedef uint32_t u32;
-  typedef uint64_t u64;
-  typedef int_fast8_t fs8;
-  typedef int_fast16_t fs16;
-  typedef int_fast32_t fs32;
-  typedef int_fast64_t fs64;
-  typedef uint_fast8_t fu8;
-  typedef uint_fast16_t fu16;
-  typedef uint_fast32_t fu32;
-  typedef uint_fast64_t fu64;
-
-  #define maxs8 INT8_MAX
-  #define maxs16 INT16_MAX
-  #define maxs32 INT32_MAX
-  #define maxs64 INT64_MAX
-  #define maxu8 UINT8_MAX
-  #define maxu16 UINT16_MAX
-  #define maxu32 UINT32_MAX
-  #define maxu64 UINT64_MAX
-  #define maxfs8 INT_FAST8_MAX
-  #define maxfs16 INT_FAST16_MAX
-  #define maxfs32 INT_FAST32_MAX
-  #define maxfs64 INT_FAST64_MAX
-  #define maxfu8 UINT_FAST8_MAX
-  #define maxfu16 UINT_FAST16_MAX
-  #define maxfu32 UINT_FAST32_MAX
-  #define maxfu64 UINT_FAST64_MAX
-#+END_SRC
-
-Now lets compile that and make sure our stub works
-#+BEGIN_SRC sh
-  $ clang++ -std=c++11 src/http_client.cpp src/main.cpp -o sockstest
-  $ ./sockstest
-  NOT IMPLEMENTED
-#+END_SRC
-
-Perfect! So far we've done nothing related to sockets, just setting up the framework and getting it compiling.
-
-Now we need to start parsing the URLs passed into =http_client::get()= so we can extract the protocol, host, port, path, and query components. Now this URL parser will be very basic since the goal of this series is not HTTP but rather sockets.
-
-* Parsing URLs
-
-First, in =http_client.cpp= we will create an anonymous namespace. These are much like the "static" keyword from C in that functions declared inside an anonymous namespace will only be callable from inside that file.
-#+BEGIN_SRC cpp
-  namespace
-  {
-
-  }
-#+END_SRC
-
-For our URL parser we are going to use some new tools added in C++11 to allow functions to return multiple values; specifically std::tuple and std::tie. =std::tuple= is an immutable collection of values. =std::tie= creates a tuple whose values are references, so when we set the tie equal to a tuple, the values are copied into the elements in the tie.
-#+NAME: http_client.cpp
-#+BEGIN_SRC cpp
-  #include "http_client.h"
-  #include <tuple>
-
-  namespace
-  {
-      /**
-       ,* Break a URL down into its components
-       ,* 
-       ,* @param url The URL to parse
-       ,* @returns tuple(protocol http/https, host, path, query, port)
-       ,*/
-      std::tuple<std::string, std::string, std::string, std::string, u16> parse_url(const std::string & url)
-      {
-          std::string protocol;
-          std::string host;
-          std::string path;
-          std::string query;
-          u16 port;
-          // PARSING GOES HERE
-          return std::make_tuple(protocol, host, path, query, port);
-      }
-  }
-
-  namespace http_client
-  {
-      /**
-       ,* Perform an HTTP request and return the result
-       ,* 
-       ,* @param address The URL to request
-       ,* @param retry Number of times to try again on failed attempts
-       ,*/
-      std::string get(const std::string & address, u8 retry)
-      {
-          std::string protocol;
-          std::string host;
-          std::string path;
-          std::string query;
-          u16 port;
-          tie(protocol, host, path, query, port) = parse_url(address);
-          return protocol + " | " + host + " | " + std::to_string(port) + " | " + path + " | " + query + "\n";
-      }
-  }
-#+END_SRC
-
-To aid in the parsing we're going to add a =split()= function to do essentially what strtok does in C, but in a C++ fashion. We will place this in util.cpp and put its signature in util.h
-
-#+NAME: util.cpp
-#+BEGIN_SRC cpp
-  #include "util.h"
-
-  /**
-   ,* Split the haystack at most 1 time
-   ,* 
-   ,* @return A tuple containing the text preceding the needle and the
-   ,* text succeeding the needle. If the needle is not found then the
-   ,* tuple will contain the full haystack and an empty string
-   ,*/
-  std::tuple<std::string, std::string> split(const std::string & haystack, const std::string & needle)
-  {
-      size_t at = haystack.find(needle);
-      if (at == std::string::npos) return std::make_tuple(haystack, "");
-      
-      return std::make_tuple(haystack.substr(0, at), haystack.substr(at + needle.size()));
-  }
-#+END_SRC
-
-Now we throw in URL parsing. The parsing code is just simple substring searches. So far nothing up to this point has involved sockets so I apologize if any topics are under-covered.
-
-#+BEGIN_SRC cpp
-  std::string remaining;
-  tie(protocol, remaining) = split(url, "://"); // Grab the protocol
-  if (remaining.find("/") < remaining.find(":")) // If there is no port
-  {
-      port = -1;
-      tie(host, remaining) = split(remaining, "/");
-  } else { // There is a port
-      std::string temp_port;
-      tie(host, remaining) = split(remaining, ":");
-      tie(temp_port, remaining) = split(remaining, "/");
-      port = atoi(temp_port.c_str());
-  }
-  // Get the path and query
-  tie(path, query) = split(remaining, "?");
-          
-  path = "/" + path;
-#+END_SRC
-
-Running the test we should now get the components of the URL
-
-#+BEGIN_SRC text
-  http | fizz.buzz | 65535 | / | 
-#+END_SRC
-
-* <<socket>>Lets open some sockets!
-
-We're going to walk before we run so for this tutorial we're going to open a plain TCP synchronous socket. Later entries in this series will be porting our work to asynchronous sockets and adding support for OpenSSL.
-
-First, we need to do a DNS request in order to get the ip address of the host name passed into our http client. A DNS request is what turns "fizz.buzz" into 208.113.196.82. You can do this in a shell with the following command:
+The first step to most network connections is doing a DNS request to convert a hostname like "fizz.buzz" to an ip address like "208.113.196.82". For illustration purposes you could manually do a DNS request from the shell with the following command:
 #+BEGIN_SRC sh
   $ dig +short fizz.buzz
+  208.113.196.82
 #+END_SRC
 
-To make a DNS query we will use =getaddrinfo(3)= from BSD/Posix sockets. For our limited use case we only care about the 1st, 2nd, and 4th parameters. The first is the string "fizz.buzz", the second can be either a port number or a protocol string, and the fourth is a pointer to a pointer to a =addrinfo= struct.
+To make a DNS request we will be using [[https://www.freebsd.org/cgi/man.cgi?query=getaddrinfo&sektion=3][getaddrinfo(3)]] which will set the address of an addrinfo pointer passed into it.
 
 #+BEGIN_SRC cpp
   struct addrinfo* address_info;
-  struct sockaddr_in server;
-  int error = getaddrinfo(host.c_str(), protocol.c_str(), nullptr, &address_info);
+  int error = getaddrinfo(HOST, "http", nullptr, &address_info);
   if (error != 0)
   {
-      throw string("Error getting address info: ") + string(gai_strerror(error));
+      throw std::string("Error getting address info: ") + std::string(gai_strerror(error));
   }
 #+END_SRC
 
-The addrinfo struct that =address_info= now points to has the following fields:
-#+BEGIN_SRC cpp
-  struct addrinfo {
-      int     ai_flags;
-      int     ai_family;
-      int     ai_socktype;
-      int     ai_protocol;
-      size_t  ai_addrlen;
-      struct  sockaddr *ai_addr;
-      char    *ai_canonname;
-      struct  addrinfo *ai_next; // Used for linked lists
-  };
-#+END_SRC
+The second parameter to getaddrinfo defines the port. This can be a string for a protocol like "http" or "https", or it can be a numeric string like "80" and "443".
 
-One thing to note here is the struct is set up as a singly linked list, which means that getaddrinfo can return multiple results. Next, we can connect to the ip address we just found through the =socket()= and =connect= call.
+The third parameter to getaddrinfo is a set of "hints" indicating what type of connection we're looking to open. The hints param is optional and could just be a nullptr in this case without issue. In our hints we're setting =ai_family= to =PF_UNSPEC= to indicate that we are fine with any protocol. We're also setting =ai_socktype= to =SOCK_STREAM= to indicate that we wish to open a two way byte stream.
 
-#+BEGIN_SRC cpp
-  int connection = socket(address_info->ai_family, address_info->ai_socktype, address_info->ai_protocol);
-  if (!connection)
-  {
-      throw std::string("Unable to open socket");
-  }
-
-  // Establish a connection
-  error = connect(connection, address_info->ai_addr, address_info->ai_addrlen);
-  if (error == -1)
-  {
-      throw std::string("Unable to connect");
-  }
-#+END_SRC
-
-Now we're at the point where we can make an http request
-
-#+BEGIN_SRC cpp
-  std::string http_query = "GET " + path + " HTTP/1.1\r\n"    \
-      "Host: " + host + "\r\n\r\n";
-  char buffer[1024];
-
-  send(connection, http_query.c_str(), http_query.size(), 0);
-  ssize_t read_size = recv(connection, buffer, 1024, 0);
-  return std::string(buffer, read_size);
+The =addrinfo= struct that =address_info= now points to looks like this:
+#+BEGIN_SRC text
+  addrinfo:
+    ai_flags      0
+    ai_family     2               # AF_INET
+    ai_socktype   1               # SOCK_STREAM
+    ai_protocol   6               # IPPROTO_TCP
+    ai_addrlen    16              # Length in bytes for the next field (ai_addr)
+    ai_addr       sockaddr_in
+      sin_family  2               # AF_INET (ipv4)
+      sin_port    80              # default http port
+      sin_addr    208.113.196.82  # ipv4 address to fizz.buzz
+    ai_canonname  <blank>
+    ai_next       nullptr         # Forms a linked list
 #+END_SRC
