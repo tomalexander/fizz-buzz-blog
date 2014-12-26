@@ -247,7 +247,7 @@ Now we can make it a static variable inside the =make_secure= function so that i
   }
 #+END_SRC
 
-Great! Now everything should be in place, lets make two minor changes to =main.cpp= to point it at the https site. In the ssl_socket constructor change "http" to "https" and add a call to =make_secure()= before writing to the socket
+Great! Now everything should be in place, lets make two minor changes to =main.cpp= to point it at the https site. In the =ssl_socket= constructor change "http" to "https" and add a call to =make_secure()= before writing to the socket
 #+BEGIN_SRC cpp
   int main(int argc, char** argv)
   {
