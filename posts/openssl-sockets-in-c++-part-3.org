@@ -1,0 +1,14 @@
+#+BEGIN_COMMENT
+.. title: OpenSSL Sockets in C++ (part 3)
+.. slug: openssl-sockets-in-c++-part-3
+.. date: 2014-12-25 19:15:55 UTC-08:00
+.. tags: private
+.. link: 
+.. description: 
+.. type: text
+#+END_COMMENT
+
+
+For this post we're going to move all of our code from [[http://fizz.buzz/posts/openssl-sockets-in-c++-part-2.html][part 2]] into its own class to facilitate the SSL transition. This will be the last post before we start using OpenSSL to encrypt the stream. We're going to create two files =ssl_socket.h= and =ssl_socket.cpp=. Since all the socket code was covered in [[http://fizz.buzz/posts/openssl-sockets-in-c++-part-1.html][part 1]] and [[http://fizz.buzz/posts/openssl-sockets-in-c++-part-2.html][part 2]] we're not going to go into too much detail with the code. Instead, we'll cover the structure of the class.
+
+
