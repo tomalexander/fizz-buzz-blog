@@ -196,7 +196,7 @@ Now we have the initiation and the cleanup handled, so we need to write the SSL 
               {
                 case SSL_ERROR_ZERO_RETURN: // The socket has been closed on the other end
                   disconnect();
-                  throw ssl_socket_exception("The socket disconnected");
+                  return 0;
                   break;
                 case SSL_ERROR_WANT_READ:
                 case SSL_ERROR_WANT_WRITE:
