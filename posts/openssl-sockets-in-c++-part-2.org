@@ -74,4 +74,4 @@ Once again, lets compile, run, and test the program with valgrind and clang-anal
   scan-build: No bugs found.
 #+END_SRC
 
-Looks good! In part 3 we will move all of our socket code into its own class so we can easily re-use it and also use a common interface for SSL sockets and normal sockets. The full source code for this post is available [[http://fizz.buzz/post_files/sockets_part_2/sockets_part2.cpp][here]] under the ISC license.
+Looks good! In [[http://fizz.buzz/posts/openssl-sockets-in-c++-part-3.html][part 3]] we will move all of our socket code into its own class so we can easily re-use it and also use a common interface for SSL sockets and normal sockets. The full source code for this post is available [[http://fizz.buzz/post_files/sockets_part_2/sockets_part2.cpp][here]] under the ISC license.

@@ -31,21 +31,79 @@ class ssl_socket_exception
     std::string msg;
 };
 
+/**
+ * Unified interface for non-blocking read and blocking write, plain
+ * and SSL sockets
+ */
 class ssl_socket
 {
   public:
-    ssl_socket(const std::string & _host, const std::string & port);
+    /**
+     * Construct a socket that will eventually connect to the given
+     * host and port.
+     * 
+     * @param _host The hostname or ip address to connect to (ex: "fizz.buzz" or "208.113.196.82")
+     * @param  _port The port or service name to connect to (ex: "80" or "http")
+     */
+    ssl_socket(const std::string & _host, const std::string & _port);
     virtual ~ssl_socket();
     ssl_socket(ssl_socket const&) = delete;
     ssl_socket& operator=(ssl_socket const&) = delete;
 
+    /**
+     * Perform a DNS request and establish an unencrypted TCP socket
+     * to the host.
+     * 
+     * @return A reference to itself
+     * @throw ssl_socket_exception if any part of the connection fails
+     */
     ssl_socket& connect();
-    void disconnect();
-    ssl_socket& write(const uint8_t* data, size_t length);
-    ssl_socket& write(const std::string & data);
-    size_t read(char* buffer, size_t length);
 
-    bool is_connected() { return connection >= 0; }
+    /**
+     * Disconnect from the host and destroy the socket
+     */
+    void disconnect();
+
+    /**
+     * Blocking write of data to the socket
+     * 
+     * @param data pointer to raw bytes to write to socket
+     * @param length number of bytes we wish to write to the socket
+     * 
+     * @return a reference to itself
+     * @throw ssl_socket_exception if an error occurs other than EAGAIN/EWOULDBLOCK
+     */
+    ssl_socket& write(const uint8_t* data, size_t length);
+
+    /**
+     * Blocking write of a string to the socket (*does not write the
+     * null terminator*)
+     * 
+     * @param data a string to write to the socket
+     * 
+     * @return a reference to itself
+     * @throw ssl_socket_exception if an error occurs other than EAGAIN/EWOULDBLOCK
+     */
+    ssl_socket& write(const std::string & data);
+
+    /**
+     * Non-blocking attempt to read from the socket
+     * 
+     * @param buffer a block of memory in which the read data will be placed
+     * @param length the maximum number of bytes we can read into buffer
+     * 
+     * @return The number of bytes read from the socket. Please note that 0 can be returned if theres no data available OR if the socket has closed. Use is_connected to determine if the socket is still open.
+     * @throw ssl_socket_exception if an error occurs other than EAGAIN/EWOULDBLOCK
+     */
+    size_t read(void* buffer, size_t length);
+
+    /**
+     * Check to see if the socket is still connected. If the socket
+     * has been disconnected on the server side and no read or write
+     * has occurred then it is possible for this to return true
+     * because the disconnect has not yet been detected
+     */
+    bool is_connected() const { return connection >= 0; }
 
   private:
     struct addrinfo* address_info;

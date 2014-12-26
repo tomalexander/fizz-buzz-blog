@@ -141,7 +141,7 @@ void ssl_socket::disconnect()
     }
 }
 
-size_t ssl_socket::read(char* buffer, size_t length)
+size_t ssl_socket::read(void* buffer, size_t length)
 {
     ssize_t read_size = recv(connection, buffer, length, 0);
     switch (read_size)

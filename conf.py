@@ -297,7 +297,7 @@ REDIRECTIONS = []
 DEPLOY_COMMANDS = {
     "default": [
         "nikola build",
-        "rsync -avz output/ paphus@paphus.com:~/fizz.buzz/",
+        "rsync -avz --delete output/ paphus@paphus.com:~/fizz.buzz/",
     ]
 }
 

@@ -14,6 +14,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include <iostream>
+#include <thread>
 #include "ssl_socket.h"
 
 namespace
@@ -34,11 +35,17 @@ int main(int argc, char** argv)
         s.connect().write(http_query);
         while (s.is_connected())
         {
-            size_t lenth = s.read(buffer, BUFFER_SIZE);
-            std::cout << std::string(buffer, lenth);
+            size_t length = s.read(buffer, BUFFER_SIZE);
+            if (length == 0 && s.is_connected())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            } else {
+                std::cout << std::string(buffer, length);
+            }
         }
     } catch (const ssl_socket_exception & e) {
         std::cerr << e.to_string() << '\n';
+        return 1;
     }
     
     return 0;

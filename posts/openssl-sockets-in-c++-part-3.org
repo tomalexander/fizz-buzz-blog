@@ -2,7 +2,7 @@
 .. title: OpenSSL Sockets in C++ (part 3)
 .. slug: openssl-sockets-in-c++-part-3
 .. date: 2014-12-25 19:15:55 UTC-08:00
-.. tags: private
+.. tags: 
 .. link: 
 .. description: 
 .. type: text
@@ -13,6 +13,156 @@ For this post we're going to move all of our code from [[http://fizz.buzz/posts/
 
 For our socket class error handling we're going to take a deviation from much of the networking functions we've been using. The BSD/posix networking functions traditionally either return an error number or set errno to indicate when theres a problem. Unfortunately, when doing this style of error handling, every call must be followed by a series of if statements for handling errors. This is due to the fact that they're implemented in C which lacked exception support. C++ support [[http://mortoray.com/2013/09/12/the-true-cost-of-zero-cost-exceptions/][zero cost exceptions]] which incur zero run-time cost when an exception has *not* occurred. Since errors should be the exception (hahaha) to the rule, in terms of performance it makes sense to use them rather than rely on branch prediction to reduce the cost of if-statement error handling.
 
-We're going to move most all of the code up to the =send=/=recv= block in a =connect()= function. We don't want this in the constructor to in order to allow for re-connecting the sockets on failure (useful in chat clients). We'll also introduce a =disconnect= function to allow for a socket to be disconnected without requiring the destruction of the object. The copy and assignment ctor will be disabled in order to prevent accidental copying.
+We're going to move most all of the code up to the =send= / =recv= block in a =connect()= function. We don't want this in the constructor to in order to allow for re-connecting the sockets on failure (useful in chat clients). We'll also introduce a =disconnect= function to allow for a socket to be disconnected without requiring the destruction of the object. The copy and assignment ctor will be disabled in order to prevent accidental copying.
+#+BEGIN_SRC cpp
+  /**
+   ,* Unified interface for non-blocking read and blocking write, plain
+   ,* and SSL sockets
+   ,*/
+  class ssl_socket
+  {
+    public:
+      /**
+       ,* Construct a socket that will eventually connect to the given
+       ,* host and port.
+       ,* 
+       ,* @param _host The hostname or ip address to connect to (ex: "fizz.buzz" or "208.113.196.82")
+       ,* @param  _port The port or service name to connect to (ex: "80" or "http")
+       ,*/
+      ssl_socket(const std::string & _host, const std::string & _port);
+      virtual ~ssl_socket();
+      ssl_socket(ssl_socket const&) = delete;
+      ssl_socket& operator=(ssl_socket const&) = delete;
+
+      /**
+       ,* Perform a DNS request and establish an unencrypted TCP socket
+       ,* to the host.
+       ,* 
+       ,* @return A reference to itself
+       ,* @throw ssl_socket_exception if any part of the connection fails
+       ,*/
+      ssl_socket& connect();
+
+      /**
+       ,* Disconnect from the host and destroy the socket
+       ,*/
+      void disconnect();
+
+      ///... more code here...///
+  };
+#+END_SRC
 
 We're going to introduce =read= and =write= functions. The =read= function will behave in a non-blocking fashion returning the data and the number of bytes read. The =write= function, however, we will make blocking for simplicity, so we don't have to have either a thread or another callback to constantly push more data in a queue across the socket.
+
+#+BEGIN_SRC cpp
+  /**
+   ,* Blocking write of data to the socket
+   ,* 
+   ,* @param data pointer to raw bytes to write to socket
+   ,* @param length number of bytes we wish to write to the socket
+   ,* 
+   ,* @return a reference to itself
+   ,* @throw ssl_socket_exception if an error occurs other than EAGAIN/EWOULDBLOCK
+   ,*/
+  ssl_socket& write(const uint8_t* data, size_t length);
+
+  /**
+   ,* Blocking write of a string to the socket (*does not write the
+   ,* null terminator*)
+   ,* 
+   ,* @param data a string to write to the socket
+   ,* 
+   ,* @return a reference to itself
+   ,* @throw ssl_socket_exception if an error occurs other than EAGAIN/EWOULDBLOCK
+   ,*/
+  ssl_socket& write(const std::string & data);
+
+  /**
+   ,* Non-blocking attempt to read from the socket
+   ,* 
+   ,* @param buffer a block of memory in which the read data will be placed
+   ,* @param length the maximum number of bytes we can read into buffer
+   ,* 
+   ,* @return The number of bytes read from the socket. Please note that 0 can be returned if theres no data available OR if the socket has closed. Use is_connected to determine if the socket is still open.
+   ,* @throw ssl_socket_exception if an error occurs other than EAGAIN/EWOULDBLOCK
+   ,*/
+  size_t read(void* buffer, size_t length);
+#+END_SRC
+
+One thing you may have noticed is since we're returning the number of bytes read from the =read= function, and we're using it in a non-blocking fashion, we may return zero when there are no bytes available to read on the socket. This, however, used to be the signal that the socket had been closed on the other end. To allow the user to be able to check if the socket is open we're going to introduce an =is_connected= function to indicate the connected status of the socket.
+
+#+BEGIN_SRC cpp
+  /**
+   ,* Check to see if the socket is still connected. If the socket
+   ,* has been disconnected on the server side and no read or write
+   ,* has occurred then it is possible for this to return true
+   ,* because the disconnect has not yet been detected
+   ,*/
+  bool is_connected() const { return connection >= 0; }
+#+END_SRC
+
+Finally, we're going to need a =main.cpp= to use the socket. In this code we open a socket on the stack, which means it will automatically disconnect and clean itself up when it goes out of scope since we have our destructor set up to call =disconnect=.
+
+#+BEGIN_SRC cpp
+  int main(int argc, char** argv)
+  {
+      try
+      {
+          ssl_socket s(HOST, "http");
+          
+          ///... more code here ...///
+
+      } catch (const ssl_socket_exception & e) {
+          std::cerr << e.to_string() << '\n';
+          return 1;
+      }
+      return 0;
+  }
+#+END_SRC
+
+Now we make our http query just like before, connect our socket, and write the query to it. Since =write= is a blocking call we don't have to worry about calling it multiple times.
+
+#+BEGIN_SRC cpp
+  char buffer[BUFFER_SIZE];
+  std::string http_query = "GET / HTTP/1.1\r\n"    \
+      "Host: " + std::string(HOST) + "\r\n\r\n";
+
+  s.connect().write(http_query);
+#+END_SRC
+
+Finally, we create a loop contingent on the socket being connected that will poll for data available to read and echo it out to the shell.
+
+#+BEGIN_SRC cpp
+  while (s.is_connected())
+  {
+      size_t length = s.read(buffer, BUFFER_SIZE);
+      if (length == 0 && s.is_connected())
+      {
+          std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      } else {
+          std::cout << std::string(buffer, length);
+      }
+  }
+#+END_SRC
+
+Now lets build and test just like before (I've added premake to the folder now)
+
+#+BEGIN_SRC sh
+  $ premake4 gmake
+  Building configurations...
+  Running action 'gmake'...
+  Generating Makefile...
+  Generating sockets_part_3.make...
+  Done.
+  $ scan-build make
+  ...
+  scan-build: No bugs found.
+  $ ./sockets_part3
+  <html of page here>
+  $ valgrind --leak-check=full ./sockets_part_3
+  ...
+  All heap blocks were freed -- no leaks are possible
+  ...
+#+END_SRC
+
+Mission accomplished. All the code for this post is available [[http://fizz.buzz/post_files/sockets_part_3/][here]] under the ISC license. We are finally ready to venture into the world of OpenSSL, which we will do in part 4.
