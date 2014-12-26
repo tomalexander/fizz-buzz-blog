@@ -165,4 +165,4 @@ Now lets build and test just like before (I've added premake to the folder now)
   ...
 #+END_SRC
 
-Mission accomplished. All the code for this post is available [[http://fizz.buzz/post_files/sockets_part_3/][here]] under the ISC license. We are finally ready to venture into the world of OpenSSL, which we will do in part 4.
+Mission accomplished. All the code for this post is available [[http://fizz.buzz/post_files/sockets_part_3/][here]] under the ISC license. We are finally ready to venture into the world of OpenSSL, which we will do in [[http://fizz.buzz/posts/openssl-sockets-in-c++-part-4.html][part 4]].
