@@ -2,7 +2,7 @@
 .. title: OpenSSL Sockets in C++ (part 3)
 .. slug: openssl-sockets-in-c++-part-3
 .. date: 2014-12-25 19:15:55 UTC-08:00
-.. tags: 
+.. tags: c++,sockets
 .. link: 
 .. description: 
 .. type: text
