@@ -90,6 +90,23 @@ mapping. ")
   "Export the body only of the input file and write it to
 specified location."
 
+  (require 'ox-html)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((dot . t))) ; this line activates dot
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (string= lang "dot")))  ; don't ask for ditaa
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+  (defun my-html-filter-files (text backend info)
+    "Fix image path"
+    (when (org-export-derived-backend-p backend 'html)
+      (replace-regexp-in-string "../files/" "../" text)
+      ))
+  
+  (add-to-list 'org-export-filter-link-functions
+               'my-html-filter-files)
+
+
   (with-current-buffer (find-file infile)
     (org-macro-replace-all nikola-macro-templates)
     (org-html-export-as-html nil nil t t)

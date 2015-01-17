@@ -1,0 +1,28 @@
+#+BEGIN_COMMENT
+.. title: Anything you zcat I zcat faster (under certain conditions)
+.. slug: anything-you-zcat-i-zcat-faster-under-certain-conditions
+.. date: 2015-01-17 10:55:14 UTC-08:00
+.. tags: private
+.. link: 
+.. description: 
+.. type: text
+#+END_COMMENT
+
+* Pleasant Surprises, or how I learned to stop worrying and benchmark the code
+It all started with a flight to see my parents for christmas. During normal weeks I often find talks about programming that I wish to watch but can't find the time to, so when I fly, I download the videos to my phone and go through them. This has the side effect that every time I travel I come out of it with a strong desire to be a better programmer. In this case, the video that got to me was [[https://www.youtube.com/watch?v=4OCUEgSNIAY][Plain Threads are the GOTO of todays computing]]. At my work, I frequently have to delve into thousands of gzipped logs each about 20MB compressed. In order to make sense of it all, I naively wrote a log parser that had this flow:
+
+#+BEGIN_SRC dot :file ../files/post_files/zcat/test-dot.png :exports results
+  digraph data_relationships {
+    "org-mode"
+    "org-exp-blocks"
+    "dot"
+    "ditaa"
+    "HTML" [shape=Mrecord, label="{HTML|publish on the web\l}"]
+    "LaTeX" [shape=Mrecord, label="{LaTeX|publish in PDF\l}"]
+    "org-mode" -> "org-exp-blocks"
+    "dot" -> "org-mode"
+    "ditaa" -> "org-mode"
+    "org-exp-blocks" -> "HTML"
+    "org-exp-blocks" -> LaTeX
+  }
+#+END_SRC
