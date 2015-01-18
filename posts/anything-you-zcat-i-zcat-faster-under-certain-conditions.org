@@ -9,20 +9,88 @@
 #+END_COMMENT
 
 * Pleasant Surprises, or how I learned to stop worrying and benchmark the code
-It all started with a flight to see my parents for christmas. During normal weeks I often find talks about programming that I wish to watch but can't find the time to, so when I fly, I download the videos to my phone and go through them. This has the side effect that every time I travel I come out of it with a strong desire to be a better programmer. In this case, the video that got to me was [[https://www.youtube.com/watch?v=4OCUEgSNIAY][Plain Threads are the GOTO of todays computing]]. At my work, I frequently have to delve into thousands of gzipped logs each about 20MB compressed. In order to make sense of it all, I naively wrote a log parser that had this flow:
+It all started with a flight to see my parents for christmas. During normal weeks I often find talks about programming that I wish to watch but can't find the time to, so when I fly, I download the videos to my phone and go through them. This has the side effect that every time I travel I come out of it with a strong desire to be a better programmer. In this case, the video that got to me was [[https://www.youtube.com/watch?v=4OCUEgSNIAY][Plain Threads are the GOTO of todays computing]]. At my work, I frequently have to delve into thousands of gzipped logs each about 20MB compressed. In order to make sense of it all, I naively wrote a log parser that had some pretty bad design decisions that I had to fix.
 
-#+BEGIN_SRC dot :file ../files/post_files/zcat/test-dot.png :exports results
-  digraph data_relationships {
-    "org-mode"
-    "org-exp-blocks"
-    "dot"
-    "ditaa"
-    "HTML" [shape=Mrecord, label="{HTML|publish on the web\l}"]
-    "LaTeX" [shape=Mrecord, label="{LaTeX|publish in PDF\l}"]
-    "org-mode" -> "org-exp-blocks"
-    "dot" -> "org-mode"
-    "ditaa" -> "org-mode"
-    "org-exp-blocks" -> "HTML"
-    "org-exp-blocks" -> LaTeX
+Starting a full rewrite of my log parser, I had to first set up the decompressor. Once I had a decompressor implemented, I remembered the age old rule that performance is not always intuitive, so code should be benchmarked. During my benchmarking, I stumbled upon an interesting finding: I was beating all the standard tools.
+
+* The Benchmark Script
+Upon discovering my unexpected performance, I decided that it was time to do extensive benchmarking to ensure it wasn't just a fluke. First I separated out the decompression code from the rest of the repository and put it up on github at [[https://github.com/tomalexander/fzcat]]. I needed to create a command line interface to the decompressor so I decided to just treat all commandline args as paths to files. This is a slight deviation from zcat which supports four commandline flags:
+| Flag         | Action                                                                | Reason Ignored                                        |
+|--------------+-----------------------------------------------------------------------+-------------------------------------------------------|
+| -f --force   | Forces decompression                                                  | We're going to try decompressing regardless           |
+| -h --help    | Display a help screen and quit                                        | We have no command line flags so help isn't necessary |
+| -L --license | Display the gzip license and quit                                     | The code is distributed under the Unlicense           |
+| -V --version | Version. Display the version number and compilation options then quit | The project isn't versioned                           |
+
+The benchmark script contains two phases: Warm and cold cache. We test both to ensure that theres no corner cases that would lead to poor performance. For testing We have 5 tests:
+1. zcat
+2. GNU parallel + zcat
+3. pigz
+4. GNU parallel + pigz
+5. fzcat (The program this blog post is about)
+
+I wrote the benchmark script in python to keep things simple. All it does it invoke the 5 tests with warm and cold caches using all the files, and files inside folders that are passed in as commandline arguments.
+
+I also wrote a validation script that just does zcat and fzcat to ensure that the output of the two scripts is identical.
+
+* Results
+I ran the test against 189 files, each around 20MB in size when compressed. The full results are on the github page but there wasn't a significant difference between cold and warm caches so I'll use warm cache for the rest of this post:
+| Test            |            Seconds |
+|-----------------+--------------------|
+| zcat            | 107.95278143882751 |
+| parallel zcat   |  42.61844491958618 |
+| pigz            |  55.39036321640015 |
+| parallel pigz   |  42.56399941444397 |
+| fzcat           | 28.799103498458862 |
+* Recommendations
+fzcat will only be faster under certain conditions:
+1. You must be decompressing multiple files at once
+2. You must have a multicore machine
+3. You must have enough ram to fit 4 of the decompressed files entirely in memory
+
+The 3rd restriction is to ensure that files are output to stdout in order. If you don't meet those requirements I recommend you use pigz for single files, or GNU Parallel + zcat for multiple files.
+* Theories
+Those figures are all a practical person would need, but I can't let that go without proper investigation as to *why* we are getting these results. My theory as to why my performance was superior falls into the following:
+1. Using [[http://linux.die.net/man/3/mmap][mmap]] instead of [[http://linux.die.net/man/3/read][read]] leads to copying memory around less, so zcat and pigz probably are using read.
+2. zcat and pigz are processing a single file at a time, rather than buffered the decompressed output in ram like I am doing. This enables them to be used on machine without piles of ram.
+3. miniz is a superb implementation of zlib
+* Testing the theories
+** mmap vs read
+In order to test this theory, I need to write a fork of the decompressor that uses =read= instead of =mmap=.
+** single vs multiple files
+I think its safe to assume zcat is processing one file at a time, but pigz is a special threaded implementation of zlib so first I am going to investigate the pigz source code to see what its doing. First I downloaded the source tarball from [[http://zlib.net/pigz/]]. *NOTE* All code snippets from pigz that I include in this blog are under the pigz license. Upon inspection of the Makefile it looks like =pigz.c= is included in the final =pigz= binary so thats probably a good place to start looking. Inside =main()= there appears this block:
+#+BEGIN_SRC c
+  /* process command-line arguments, no options after "--" */
+  done = noop = 0;
+  for (n = 1; n < argc; n++)
+      if (noop == 0 && strcmp(argv[n], "--") == 0) {
+          noop = 1;
+          option(NULL);
+      }
+      else if (noop || option(argv[n])) { /* true if file name, process it */
+          if (done == 1 && g.pipeout && !g.decode && !g.list && g.form > 1)
+              complain("warning: output will be concatenated zip files -- "
+                       "will not be able to extract");
+          process(strcmp(argv[n], "-") ? argv[n] : NULL);
+          done++;
+      }
+#+END_SRC
+This is looping through the arguments in order, and passing the args to =process()= which, would support that theory. Digging into process further we see a lot of setup and then these lines:
+#+BEGIN_SRC c
+  /* process ind to outd */
+  if (g.verbosity > 1)
+      fprintf(stderr, "%s to %s ", g.inf, g.outf);
+  if (g.decode) {
+      if (method == 8)
+          infchk();
+      else if (method == 257)
+          unlzw();
+      else
+          cat();
   }
 #+END_SRC
+So =pigz= does indeed process each file in-order.
+
+Since zcat is using =read= instead of =mmap= I will keep the decompressor from the above test and remove any threading so that it processes one file at a time.
+** miniz vs zlib
+For this final test, we will use the code from the above test which is using =read= and only a single thread. This should be enough to compare the raw performance of miniz vs zlib by comparing our binary vs zcat.

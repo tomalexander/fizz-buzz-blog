@@ -2,11 +2,60 @@
 .. title: Adventures in Battery Life on Arch Linux
 .. slug: adventures-in-battery-life-on-arch-linux
 .. date: 2015-01-18 10:46:01 UTC-08:00
-.. tags: 
+.. tags: private
 .. link: 
 .. description: 
 .. type: text
 #+END_COMMENT
 
+Recently, I purchased an [[http://www.amazon.com/Zenbook-UX303LN-DB71T-Quad-HD-Display-Touchscreen/dp/B00KTL21RA][Asus ux303ln]] which is advertised as having an 8 hour battery life. I promptly then wiped the drive and installed [[https://www.archlinux.org/][Arch Linux]] which has only been giving me about two hours of battery life. I started doing some research and found some suggestions on how to improve battery life, so I am going to go through each one and measure the power usage to see how each one individually affects battery life. To measure battery usage, I am going to use [[http://www.hecticgeek.com/2012/02/powerstat-power-calculator-ubuntu-linux/][powerstat]] and when I get down to 30% battery I am going to use [[http://linux.die.net/man/1/uptime][uptime]] to measure how long the battery lasts. The uptime tests won't be "scientific" in that I will be using my laptop during the time the power is draining but I'll try to keep my usage as consistent as possible (no youtube, no video games).
 
-Write your post here.
+* Establish a baseline
+First I will go through the motions for my unmodified system.
+
+#+BEGIN_SRC text
+  Running for 300.0 seconds (30 samples at 10.0 second intervals).
+  ACPI battery power measurements will start in 180 seconds time.
+
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  13:58:25   0.1   0.0   0.0  99.8   0.0    1     95     29    0    0    0  13.03
+  13:58:35   0.2   0.0   0.1  99.8   0.0    1     90     24    0    0    0  13.48
+  13:58:45   0.2   0.0   0.1  99.7   0.0    1     91     23    0    0    0  13.06
+  13:58:55   0.2   0.0   0.0  99.8   0.0    1     84     22    0    0    0  13.04
+  13:59:05   0.1   0.0   0.0  99.8   0.0    1     83     22    0    0    0  13.11
+  13:59:15   0.1   0.0   0.0  99.8   0.0    1     84     22    0    0    0  13.04
+  13:59:25   0.2   0.0   0.0  99.8   0.0    1     81     22    0    0    0  13.04
+  13:59:35   0.2   0.0   0.1  99.8   0.0    1     82     21    0    0    0  13.04
+  13:59:45   0.2   0.0   0.0  99.8   0.0    1     82     21    0    0    0  13.07
+  13:59:55   0.2   0.0   0.0  99.8   0.0    1     86     25    0    0    3  13.05
+  14:00:05   0.1   0.0   0.1  99.8   0.0    1     98     25    0    0    9  13.05
+  14:00:15   0.2   0.0   0.0  99.8   0.0    1     87     22    0    0    1  13.07
+  14:00:25   0.1   0.0   0.0  99.9   0.0    1     86     25    1    0    0  13.05
+  14:00:35   0.2   0.0   0.0  99.8   0.0    1     82     23    0    0    0  13.09
+  14:00:45   0.2   0.0   0.1  99.7   0.0    1     82     21    0    0    0  13.09
+  14:00:55   0.2   0.0   0.0  99.8   0.0    1     79     21    0    0    0  13.07
+  14:01:05   0.2   0.0   0.0  99.7   0.0    1     84     22    0    0    0  13.07
+  14:01:15   0.3   0.0   0.1  99.7   0.0    1     90     25    0    0    0  13.07
+  14:01:25   0.1   0.0   0.0  99.9   0.0    1     76     20    0    0    0  13.07
+  14:01:35   0.3   0.0   0.0  99.7   0.0    1     82     21    0    0    0  13.07
+  14:01:45   0.2   0.0   0.1  99.7   0.0    1     83     21    0    0    0  13.11
+  14:01:55   0.2   0.0   0.1  99.8   0.0    1     85     23    0    0    0  13.09
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  14:02:05   0.2   0.0   0.0  99.8   0.0    1     85     22    0    0    0  13.09
+  14:02:15   0.2   0.0   0.0  99.8   0.0    1     86     21    0    0    0  13.35
+  14:02:25   0.2   0.0   0.1  99.8   0.0    1     89     23    0    0    0  13.10
+  14:02:35   0.2   0.0   0.1  99.7   0.0    1     84     22    0    0    0  13.10
+  14:02:45   0.2   0.0   0.1  99.7   0.0    1     81     21    0    0    0  13.12
+  14:02:55   0.2   0.0   0.1  99.7   0.0    1     83     22    0    0    0  13.11
+  14:03:05   0.3   0.0   0.1  99.7   0.0    1     88     23    0    0    0  13.15
+  14:03:15   0.3   0.0   0.1  99.7   0.0    1     96     25    0    0    0  13.11
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Average   0.2   0.0   0.0  99.8   0.0  1.0   85.4   22.5  0.0  0.0  0.4  13.10
+    StdDev   0.1   0.0   0.0   0.1   0.0  0.0    4.9    1.8  0.2  0.0  1.7   0.09
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Minimum   0.1   0.0   0.0  99.7   0.0  1.0   76.3   19.8  0.0  0.0  0.0  13.03
+   Maximum   0.3   0.0   0.1  99.9   0.0  1.0   98.0   28.6  1.0  0.0  9.0  13.48
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+  Summary:
+   13.10 Watts on Average with Standard Deviation 0.09  
+#+END_SRC
