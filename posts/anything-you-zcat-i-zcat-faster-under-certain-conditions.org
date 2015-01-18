@@ -2,7 +2,7 @@
 .. title: Anything you zcat I zcat faster (under certain conditions)
 .. slug: anything-you-zcat-i-zcat-faster-under-certain-conditions
 .. date: 2015-01-17 10:55:14 UTC-08:00
-.. tags: fzcat zcat zlib pigz performance
+.. tags: fzcat,zcat,zlib,pigz,performance
 .. link: 
 .. description: 
 .. type: text
