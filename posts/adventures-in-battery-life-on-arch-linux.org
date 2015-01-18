@@ -59,3 +59,9 @@ First I will go through the motions for my unmodified system.
   Summary:
    13.10 Watts on Average with Standard Deviation 0.09  
 #+END_SRC
+
+And my uptime at 30% battery:
+#+BEGIN_SRC text
+   15:53:59 up  1:59,  0 users,  load average: 0.51, 0.37, 0.24
+#+END_SRC
+

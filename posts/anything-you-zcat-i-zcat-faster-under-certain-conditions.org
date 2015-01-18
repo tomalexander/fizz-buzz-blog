@@ -2,7 +2,7 @@
 .. title: Anything you zcat I zcat faster (under certain conditions)
 .. slug: anything-you-zcat-i-zcat-faster-under-certain-conditions
 .. date: 2015-01-17 10:55:14 UTC-08:00
-.. tags: private
+.. tags: 
 .. link: 
 .. description: 
 .. type: text
@@ -57,6 +57,11 @@ Those figures are all a practical person would need, but I can't let that go wit
 * Testing the theories
 ** mmap vs read
 In order to test this theory, I need to write a fork of the decompressor that uses =read= instead of =mmap=.
+| Type |               Time |
+|------+--------------------|
+| read | 27.672048330307007 |
+| mmap | 27.314319849014282 | 
+This is interesting in that mmap didn't create as significant of an improvement as I expected. I must not be IO pegged. The code for this change (which won't be merged into master, we will keep =mmap=) is available at [[https://github.com/tomalexander/fzcat/tree/read_instead_of_mmap]].
 ** single vs multiple files
 I think its safe to assume zcat is processing one file at a time, but pigz is a special threaded implementation of zlib so first I am going to investigate the pigz source code to see what its doing. First I downloaded the source tarball from [[http://zlib.net/pigz/]]. *NOTE* All code snippets from pigz that I include in this blog are under the pigz license. Upon inspection of the Makefile it looks like =pigz.c= is included in the final =pigz= binary so thats probably a good place to start looking. Inside =main()= there appears this block:
 #+BEGIN_SRC c
@@ -92,5 +97,18 @@ This is looping through the arguments in order, and passing the args to =process
 So =pigz= does indeed process each file in-order.
 
 Since zcat is using =read= instead of =mmap= I will keep the decompressor from the above test and remove any threading so that it processes one file at a time.
+| Type     |               Time |
+|----------+--------------------|
+| Single   |  64.25435829162598 |
+| Threaded | 27.672048330307007 |
+The code for this portion of the test is available at [[https://github.com/tomalexander/fzcat/tree/single_instead_of_threaded]].  
 ** miniz vs zlib
 For this final test, we will use the code from the above test which is using =read= and only a single thread. This should be enough to compare the raw performance of miniz vs zlib by comparing our binary vs zcat.
+| Type                      |              Time |
+|---------------------------+-------------------|
+| fzcat (modified for test) | 64.25435829162598 |
+| zcat                      | 109.0133900642395 |
+* Conclusions
+So it seems that the benefit of =mmap= vs =read= isn't as significant as I expected. THe benefit theoretically could be more significant on a machine with multiple processes reading the same file but I'll leave that as an excercise for the reader.
+
+miniz turned out to be significantly faster than zlib even when both are used in the same fashion (single threaded and read). Additionally, using the copious amounts of ram available to machines today allowed us to speed everything up even more with threading.
