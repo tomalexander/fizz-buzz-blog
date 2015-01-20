@@ -2,13 +2,13 @@
 .. title: Adventures in Battery Life on Arch Linux
 .. slug: adventures-in-battery-life-on-arch-linux
 .. date: 2015-01-18 10:46:01 UTC-08:00
-.. tags: private
+.. tags: private,arch,linux,power,battery
 .. link: 
 .. description: 
 .. type: text
 #+END_COMMENT
 
-Recently, I purchased an [[http://www.amazon.com/Zenbook-UX303LN-DB71T-Quad-HD-Display-Touchscreen/dp/B00KTL21RA][Asus ux303ln]] which is advertised as having an 8 hour battery life. I promptly then wiped the drive and installed [[https://www.archlinux.org/][Arch Linux]] which has only been giving me about two hours of battery life. I started doing some research and found some suggestions on how to improve battery life, so I am going to go through each one and measure the power usage to see how each one individually affects battery life. To measure battery usage, I am going to use [[http://www.hecticgeek.com/2012/02/powerstat-power-calculator-ubuntu-linux/][powerstat]] and when I get down to 30% battery I am going to use [[http://linux.die.net/man/1/uptime][uptime]] to measure how long the battery lasts. The uptime tests won't be "scientific" in that I will be using my laptop during the time the power is draining but I'll try to keep my usage as consistent as possible (no youtube, no video games).
+Recently, I purchased an [[http://www.amazon.com/Zenbook-UX303LN-DB71T-Quad-HD-Display-Touchscreen/dp/B00KTL21RA][Asus ux303ln]] which is advertised as having an 8 hour battery life. I promptly then wiped the drive and installed [[https://www.archlinux.org/][Arch Linux]] which has only been giving me about two hours of battery life. I started doing some research and found some suggestions on how to improve battery life, so I am going to go through each one and measure the power usage to see how each one individually affects battery life. To measure battery usage, I am going to use [[http://www.hecticgeek.com/2012/02/powerstat-power-calculator-ubuntu-linux/][powerstat]] at boot while idling, and when I get down to 30% battery I am going to use [[http://linux.die.net/man/1/uptime][uptime]] to measure how long the battery lasts. The uptime tests won't be "scientific" in that I will be using my laptop during the time the power is draining but I'll try to keep my usage as consistent as possible (no youtube, no video games).
 
 * Establish a baseline
 First I will go through the motions for my unmodified system.
@@ -64,4 +64,277 @@ And my uptime at 30% battery:
 #+BEGIN_SRC text
    15:53:59 up  1:59,  0 users,  load average: 0.51, 0.37, 0.24
 #+END_SRC
+Which assuming linear consumption of battery I'd theoretically have 2 hours and 50 minutes of battery life.
+* Enabling power saving on the intel graphics
+To enable power saving on the Intel graphics all I need to do is create =/etc/modprobe.d/i915.conf= with these contents:
+#+BEGIN_SRC text
+  options i915 enable_rc6=1 enable_fbc=1 lvds_downclock=1
+#+END_SRC
 
+#+BEGIN_SRC text
+  Running for 300.0 seconds (30 samples at 10.0 second intervals).
+  ACPI battery power measurements will start in 180 seconds time.
+
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  19:32:15   0.1   0.0   0.0  99.9   0.0    1     77     22    0    0    0  12.37
+  19:32:25   0.2   0.0   0.1  99.8   0.0    1     87     24    0    0    0  12.82
+  19:32:35   0.1   0.0   0.1  99.8   0.0    1     89     23    0    0    0  12.38
+  19:32:45   0.3   0.0   0.1  99.7   0.0    1    119     55    0    0    0  12.46
+  19:32:55   0.1   0.0   0.0  99.8   0.0    1     78     24    0    0    0  12.41
+  19:33:05   0.2   0.0   0.1  99.7   0.0    1     89     23    0    0    0  12.38
+  19:33:15   0.2   0.0   0.1  99.8   0.0    1     96     38    0    0    0  12.38
+  19:33:25   0.2   0.0   0.1  99.8   0.0    1     76     19    0    0    0  12.61
+  19:33:35   0.2   0.0   0.1  99.8   0.0    1     79     22    0    0    0  12.39
+  19:33:45   0.2   0.0   0.0  99.8   0.0    1     79     22    0    0    3  12.41
+  19:33:55   0.1   0.0   0.1  99.8   0.0    2     97     26    0    0    8  12.39
+  19:34:05   0.1   0.0   0.1  99.8   0.0    1     84     23    0    0    0  12.41
+  19:34:15   0.1   0.0   0.1  99.8   0.0    1     88     22    1    0    0  12.41
+  19:34:25   0.2   0.0   0.1  99.8   0.0    1     82     24    0    0    0  12.45
+  19:34:35   0.2   0.0   0.1  99.8   0.0    1     80     21    0    0    0  12.42
+  19:34:45   0.2   0.0   0.0  99.8   0.0    1     74     17    0    0    0  12.43
+  19:34:55   0.2   0.0   0.0  99.8   0.0    1     78     20    0    0    0  12.44
+  19:35:05   0.3   0.0   0.0  99.7   0.0    1     96     28    0    0    0  12.44
+  19:35:15   0.1   0.0   0.1  99.8   0.0    1     76     20    0    0    0  12.44
+  19:35:25   0.2   0.0   0.0  99.7   0.0    2     83     21    0    0    0  12.58
+  19:35:35   0.2   0.0   0.1  99.7   0.0    1     82     22    0    0    0  12.44
+  19:35:45   0.2   0.0   0.0  99.8   0.0    1     79     19    0    0    0  12.44
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  19:35:55   0.3   0.0   0.0  99.7   0.0    1     87     23    0    0    0  12.49
+  19:36:05   0.2   0.0   0.1  99.8   0.0    1     87     22    0    0    0  12.45
+  19:36:15   0.2   0.0   0.0  99.8   0.0    1     97     24    0    0    0  12.44
+  19:36:25   0.1   0.0   0.1  99.8   0.0    1     80     20    0    0    0  12.46
+  19:36:35   0.2   0.0   0.0  99.8   0.0    1     86     25    0    0    0  12.47
+  19:36:45   0.2   0.0   0.1  99.7   0.0    1     84     21    0    0    0  12.47
+  19:36:55   0.2   0.0   0.1  99.7   0.0    1     90     24    0    0    0  12.50
+  19:37:05   0.3   0.0   0.1  99.6   0.0    1     96     25    0    0    0  12.46
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Average   0.2   0.0   0.0  99.8   0.0  1.1   85.9   23.9  0.0  0.0  0.4  12.46
+    StdDev   0.1   0.0   0.0   0.1   0.0  0.2    9.1    6.8  0.2  0.0  1.5   0.09
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Minimum   0.1   0.0   0.0  99.6   0.0  1.0   73.8   17.4  0.0  0.0  0.0  12.37
+   Maximum   0.3   0.0   0.1  99.9   0.0  2.0  119.2   55.1  1.0  0.0  8.0  12.82
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+  Summary:
+   12.46 Watts on Average with Standard Deviation 0.09
+#+END_SRC
+
+And my uptime at 30% battery:
+#+BEGIN_SRC text
+   21:33:49 up  2:05,  0 users,  load average: 0.05, 0.08, 0.12
+#+END_SRC
+Which assuming linear consumption of battery I'd theoretically have 2 hours and 58 minutes of battery life. This change did slightly improve battery life but it wasn't a significant change.
+* Enabling PCIe Force ASPM
+Next I added pcie_aspm=force to the kernel boot line
+#+BEGIN_SRC text
+  Running for 300.0 seconds (30 samples at 10.0 second intervals).
+  ACPI battery power measurements will start in 180 seconds time.
+
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  01:44:52   0.2   0.0   0.0  99.8   0.0    1     83     22    0    0    0  11.94
+  01:45:02   0.4   0.0   0.1  99.5   0.0    1    150     70    0    0    0  11.69
+  01:45:12   0.2   0.0   0.0  99.7   0.0    1     85     23    0    0    0  11.73
+  01:45:22   0.1   0.0   0.0  99.8   0.0    1     79     23    0    0    0  11.69
+  01:45:32   0.3   0.0   0.0  99.7   0.0    1     88     25    0    0    0  11.73
+  01:45:42   0.2   0.0   0.0  99.8   0.0    1     77     20    0    0    0  11.74
+  01:45:52   0.2   0.0   0.0  99.8   0.0    1     75     20    0    0    0  11.71
+  01:46:02   0.2   0.0   0.1  99.8   0.0    1     86     25    0    0    0  11.72
+  01:46:12   0.2   0.0   0.1  99.7   0.0    1     84     30    0    0    3  11.72
+  01:46:22   0.2   0.0   0.0  99.7   0.0    1    117     52    0    0    9  11.84
+  01:46:32   0.2   0.0   0.1  99.7   0.0    1     88     25    0    0    1  11.73
+  01:46:42   0.3   0.0   0.0  99.7   0.0    1     98     29    1    0    0  11.75
+  01:46:52   0.2   0.0   0.1  99.7   0.0    1     82     28    0    0    0  11.72
+  01:47:02   0.3   0.0   0.1  99.7   0.0    1     88     26    0    0    0  11.73
+  01:47:12   0.2   0.0   0.0  99.7   0.0    1     83     22    0    0    0  11.75
+  01:47:22   0.2   0.0   0.1  99.8   0.0    1     79     21    0    0    0  11.72
+  01:47:32   0.3   0.0   0.1  99.7   0.0    1     94     24    0    0    0  11.77
+  01:47:42   0.2   0.0   0.1  99.7   0.0    1     83     22    0    0    0  11.89
+  01:47:52   0.2   0.0   0.0  99.8   0.0    1     75     19    0    0    0  11.74
+  01:48:02   0.3   0.0   0.1  99.7   0.0    1     91     24    0    0    0  11.74
+  01:48:12   0.3   0.0   0.0  99.6   0.0    1     83     23    0    0    0  11.91
+  01:48:22   0.2   0.0   0.0  99.8   0.0    1     82     21    0    0    0  11.73
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  01:48:32   0.2   0.0   0.1  99.7   0.0    1    103     28    0    0    0  11.79
+  01:48:42   0.4   0.0   0.1  99.6   0.0    1    118     30    1    0    0  11.86
+  01:48:52   0.2   0.0   0.0  99.8   0.0    1     79     21    0    0    0  11.74
+  01:49:02   0.3   0.0   0.1  99.6   0.0    1     92     27    0    0    1  11.76
+  01:49:12   0.3   0.0   0.0  99.7   0.0    1     87     23    0    0    0  11.79
+  01:49:22   0.2   0.0   0.1  99.7   0.0    1     82     21    0    0    0  11.76
+  01:49:32   0.3   0.0   0.1  99.7   0.0    1     93     24    0    0    0  11.79
+  01:49:42   0.2   0.0   0.0  99.8   0.0    1     82     22    0    0    0  11.75
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Average   0.2   0.0   0.0  99.7   0.0  1.0   89.5   26.3  0.1  0.0  0.5  11.76
+    StdDev   0.1   0.0   0.0   0.1   0.0  0.0   15.1    9.9  0.2  0.0  1.7   0.06
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Minimum   0.1   0.0   0.0  99.5   0.0  1.0   75.0   19.2  0.0  0.0  0.0  11.69
+   Maximum   0.4   0.0   0.1  99.8   0.0  1.0  149.5   69.6  1.0  0.0  9.0  11.94
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+  Summary:
+   11.76 Watts on Average with Standard Deviation 0.06
+#+END_SRC
+
+And my uptime at 30% battery
+#+BEGIN_SRC text
+   03:54:08 up  2:12,  0 users,  load average: 0.02, 0.09, 0.10
+#+END_SRC
+Which assuming linear consumption of battery I'd theoretically have 3 hours and 8 minutes of battery life. This change did slightly improve battery life but it wasn't a significant change.
+* Install powerdown
+Next I install powerdown-git from the aur. In addition for this step I keep backlight brightness at max
+#+BEGIN_SRC text
+  Running for 300.0 seconds (30 samples at 10.0 second intervals).
+  ACPI battery power measurements will start in 180 seconds time.
+
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  20:44:56   0.1   0.0   0.0  99.8   0.0    1     84     22    0    0    0  11.00
+  20:45:06   0.2   0.0   0.1  99.7   0.0    1    108     31    0    0    0  11.03
+  20:45:16   0.2   0.0   0.1  99.7   0.0    1     86     22    0    0    0  11.05
+  20:45:26   0.2   0.0   0.0  99.8   0.0    1     79     19    0    0    0  11.02
+  20:45:36   0.2   0.0   0.0  99.8   0.0    1     89     26    0    0    0  11.05
+  20:45:46   0.2   0.0   0.1  99.8   0.0    1     83     27    0    0    0  11.07
+  20:45:56   0.2   0.0   0.1  99.8   0.0    1     82     22    0    0    2  11.04
+  20:46:06   0.2   0.0   0.1  99.6   0.1    3    265    113    0    0    8  11.05
+  20:46:16   0.2   0.0   0.0  99.7   0.0    1     84     21    0    0    0  11.45
+  20:46:26   0.2   0.0   0.1  99.7   0.0    1     88     22    1    0    0  11.06
+  20:46:36   0.2   0.0   0.0  99.8   0.0    1     89     25    0    0    0  11.07
+  20:46:46   0.2   0.0   0.1  99.8   0.0    1     86     21    0    0    0  11.10
+  20:46:56   0.2   0.0   0.1  99.8   0.0    1     85     21    0    0    0  11.07
+  20:47:06   0.2   0.0   0.1  99.7   0.0    1    109     28    0    0    0  11.08
+  20:47:16   0.2   0.0   0.1  99.8   0.0    1     81     22    0    0    0  11.10
+  20:47:26   0.2   0.0   0.0  99.8   0.0    1     83     20    0    0    0  11.07
+  20:47:36   0.2   0.0   0.0  99.8   0.0    1     91     23    0    0    0  11.07
+  20:47:46   0.2   0.0   0.0  99.8   0.0    1     86     20    0    0    0  11.11
+  20:47:56   0.2   0.0   0.0  99.8   0.0    1     82     20    0    0    0  11.10
+  20:48:06   0.3   0.0   0.0  99.7   0.0    1    100     27    0    0    0  11.08
+  20:48:16   0.2   0.0   0.0  99.7   0.0    1     92     23    0    0    0  11.45
+  20:48:26   0.2   0.0   0.0  99.7   0.0    1    112     28    0    0    0  11.14
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  20:48:36   0.3   0.0   0.1  99.7   0.0    1     94     28    0    0    0  11.10
+  20:48:46   0.3   0.0   0.1  99.7   0.0    1     90     27    0    0    0  11.14
+  20:48:56   0.2   0.0   0.1  99.7   0.0    1     86     23    0    0    0  11.12
+  20:49:06   0.3   0.0   0.1  99.6   0.0    1    107     29    0    0    0  11.12
+  20:49:16   0.1   0.0   0.1  99.8   0.0    1     78     21    0    0    0  11.13
+  20:49:26   0.2   0.0   0.0  99.7   0.0    1     82     22    0    0    0  11.12
+  20:49:36   0.3   0.0   0.1  99.7   0.0    1     91     25    0    0    0  11.14
+  20:49:46   0.2   0.0   0.1  99.7   0.0    1     85     23    0    0    0  11.15
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Average   0.2   0.0   0.0  99.7   0.0  1.1   95.2   26.7  0.0  0.0  0.3  11.11
+    StdDev   0.1   0.0   0.0   0.1   0.0  0.4   32.8   16.3  0.2  0.0  1.5   0.10
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Minimum   0.1   0.0   0.0  99.6   0.0  1.0   78.3   19.3  0.0  0.0  0.0  11.00
+   Maximum   0.3   0.0   0.1  99.8   0.1  3.0  265.3  112.9  1.0  0.0  8.0  11.45
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+  Summary:
+   11.11 Watts on Average with Standard Deviation 0.10 
+#+END_SRC
+
+And my uptime at 30% battery
+#+BEGIN_SRC text
+   22:41:50 up  2:00,  0 users,  load average: 0.29, 0.30, 0.25
+#+END_SRC
+
+Oddly enough my power usage went down but the battery life did too. I suspect its just a symptom of my non-scientific test. The resting watts are really the only "scientific" part of this post.
+
+* Use Bumblebee to turn off nvidia card
+#+BEGIN_SRC text
+  Running for 300.0 seconds (30 samples at 10.0 second intervals).
+  ACPI battery power measurements will start in 180 seconds time.
+
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  15:44:38   0.4   0.0   0.1  99.4   0.0    1     90     56    1    0    0   8.29
+  15:44:48   0.3   0.0   0.1  99.7   0.0    1     78     52    0    0    2   8.26
+  15:44:58   0.2   0.0   0.1  99.8   0.0    1     86     51    0    0    0   8.27
+  15:45:08   0.3   0.0   0.0  99.7   0.0    1     91     65    0    0    0   8.27
+  15:45:18   0.2   0.0   0.1  99.7   0.0    2     82     56    0    0    0   8.41
+  15:45:28   0.2   0.0   0.0  99.8   0.0    1     81     56    0    0    0   8.26
+  15:45:38   0.2   0.0   0.0  99.7   0.0    1     84     52    0    0    0   8.74
+  15:45:48   0.4   0.0   0.0  99.6   0.0    1    103     54    1    0    0   8.27
+  15:45:58   0.3   0.0   0.1  99.7   0.0    1     87     52    0    0    0   8.26
+  15:46:08   0.3   0.0   0.1  99.6   0.0    1     92     65    0    0    0   8.27
+  15:46:18   0.3   0.0   0.0  99.7   0.0    1     84     53    0    0    0   8.27
+  15:46:28   0.3   0.0   0.0  99.6   0.0    1     96     61    0    0    0   8.27
+  15:46:38   0.3   0.0   0.1  99.7   0.0    1     90     54    0    0    0   8.27
+  15:46:48   0.3   0.0   0.0  99.7   0.0    1     78     50    0    0    0   8.28
+  15:46:58   0.4   0.0   0.0  99.6   0.0    1     90     56    0    0    0   8.28
+  15:47:08   0.3   0.0   0.0  99.7   0.0    1     92     65    0    0    0   8.28
+  15:47:18   0.2   0.0   0.1  99.7   0.0    1     82     50    0    0    0   8.28
+  15:47:28   0.3   0.0   0.0  99.7   0.0    1     83     50    0    0    0   8.30
+  15:47:38   0.3   0.0   0.1  99.7   0.0    1     91     54    0    0    0   8.73
+  15:47:48   0.3   0.0   0.0  99.6   0.0    1     90     53    0    0    0   8.29
+  15:47:58   0.3   0.0   0.0  99.7   0.0    1     88     52    0    0    0   8.29
+  15:48:08   0.3   0.0   0.1  99.6   0.0    1     86     65    0    0    0   8.28
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  15:48:18   0.3   0.0   0.0  99.6   0.0    1     83     55    0    0    0   8.28
+  15:48:28   0.3   0.0   0.1  99.6   0.0    1    108     61    0    0    0   8.29
+  15:48:38   0.3   0.0   0.1  99.7   0.0    1     91     56    0    0    0   8.31
+  15:48:48   0.2   0.0   0.1  99.7   0.0    1     95     57    0    0    0   8.29
+  15:48:58   0.3   0.0   0.1  99.6   0.0    1    110     61    0    0    0   8.37
+  15:49:08   0.3   0.0   0.0  99.6   0.0    1     96     71    0    0    0   8.31
+  15:49:18   0.3   0.0   0.1  99.6   0.0    1    121     64    4    2    2   8.39
+  15:49:28   0.3   0.0   0.0  99.6   0.0    1     98     63    0    0    0   8.29
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Average   0.3   0.0   0.0  99.7   0.0  1.0   90.8   57.0  0.2  0.1  0.1   8.32
+    StdDev   0.1   0.0   0.0   0.1   0.0  0.2    9.5    5.5  0.7  0.4  0.5   0.12
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Minimum   0.2   0.0   0.0  99.4   0.0  1.0   78.2   50.3  0.0  0.0  0.0   8.26
+   Maximum   0.4   0.0   0.1  99.8   0.0  2.0  120.7   71.1  4.0  2.0  2.0   8.74
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+  Summary:
+    8.32 Watts on Average with Standard Deviation 0.12  
+#+END_SRC
+
+My uptime at 30% battery:
+#+BEGIN_SRC text
+   18:31:11 up  2:57,  0 users,  load average: 0.27, 0.39, 0.24
+#+END_SRC
+Which would get us to 4 hours and 12 minutes total
+* Enable PSR (Panel Self Refresh)
+In =/etc/modprobe.d/i915.conf= I added enable_psr=1. Check out [[http://blog.vivi.eng.br/?p=187]] for details. You can check its status with:
+#+BEGIN_SRC sh
+  sudo cat /sys/kernel/debug/dri/0/i915_edp_psr_status
+#+END_SRC
+
+#+BEGIN_SRC text
+  Running for 300.0 seconds (30 samples at 10.0 second intervals).
+  ACPI battery power measurements will start in 180 seconds time.
+
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  22:51:05   0.3   0.0   0.0  99.7   0.0    1     93     88    0    0    0   9.08
+  22:51:15   0.4   0.0   0.1  99.5   0.0    1    110     64    1    0    0   7.58
+  22:51:25   0.2   0.0   0.0  99.8   0.0    1     80     52    0    0    0   7.58
+  22:51:35   0.2   0.0   0.1  99.7   0.0    1     82     51    0    0    0   7.70
+  22:51:45   0.2   0.0   0.1  99.8   0.0    1     91     53    0    0    0   7.74
+  22:51:55   0.3   0.0   0.1  99.6   0.0    1     96     68    0    0    0   9.31
+  22:52:05   0.2   0.0   0.1  99.7   0.0    1     88     83    0    0    0   9.09
+  22:52:15   0.2   0.0   0.1  99.7   0.0    1     89     53    0    0    0   7.67
+  22:52:25   0.2   0.0   0.0  99.8   0.0    1     81     50    0    0    0   7.62
+  22:52:35   0.2   0.0   0.1  99.8   0.0    1     81     51    0    0    0   7.61
+  22:52:45   0.3   0.0   0.1  99.7   0.0    1     89     56    0    0    0   7.63
+  22:52:55   0.2   0.0   0.0  99.8   0.0    1     79     53    0    0    0   7.67
+  22:53:05   0.2   0.0   0.1  99.7   0.0    1     84     82    0    0    0   9.09
+  22:53:15   0.4   0.0   0.0  99.6   0.0    1    110     57    0    0    0   7.64
+  22:53:25   0.3   0.0   0.0  99.7   0.0    1     92     55    0    0    0   7.43
+  22:53:35   0.3   0.0   0.0  99.7   0.0    1    115     64    0    0    0   7.40
+  22:53:45   0.2   0.0   0.1  99.7   0.0    1     86     53    0    0    0   7.35
+  22:53:55   0.3   0.0   0.1  99.7   0.0    1     92     66    0    0    0   9.77
+  22:54:05   0.2   0.0   0.0  99.8   0.0    1     86     82    0    0    0   8.87
+  22:54:15   0.3   0.0   0.1  99.7   0.0    1     92     58    0    0    0   7.37
+  22:54:25   0.2   0.0   0.1  99.7   0.0    1     83     52    0    0    0   7.41
+  22:54:35   0.3   0.0   0.0  99.6   0.0    1     85     53    0    0    0   7.36
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  22:54:45   0.2   0.0   0.0  99.8   0.0    1     85     52    0    0    0   7.57
+  22:54:55   0.3   0.0   0.0  99.7   0.0    1     86     55    0    0    0   7.36
+  22:55:05   0.3   0.0   0.1  99.6   0.0    1     87     82    0    0    0   8.84
+  22:55:15   0.3   0.0   0.1  99.7   0.0    1     97     56    0    0    0   7.42
+  22:55:25   0.2   0.0   0.1  99.7   0.0    1     81     51    0    0    0   7.37
+  22:55:35   0.3   0.0   0.0  99.6   0.0    1     86     52    0    0    0   7.42
+  22:55:45   0.2   0.0   0.1  99.7   0.0    1     87     55    0    0    0   7.49
+  22:55:55   0.2   0.0   0.0  99.7   0.0    1    101     73    0    0    0  11.62
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Average   0.3   0.0   0.0  99.7   0.0  1.0   89.7   60.7  0.0  0.0  0.0   8.04
+    StdDev   0.1   0.0   0.0   0.1   0.0  0.0    9.0   11.5  0.2  0.0  0.0   0.97
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Minimum   0.2   0.0   0.0  99.5   0.0  1.0   79.2   50.5  0.0  0.0  0.0   7.35
+   Maximum   0.4   0.0   0.1  99.8   0.0  1.0  114.6   87.9  1.0  0.0  0.0  11.62
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+  Summary:
+    8.04 Watts on Average with Standard Deviation 0.97  
+#+END_SRC
