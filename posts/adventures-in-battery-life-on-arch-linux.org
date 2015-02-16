@@ -159,7 +159,7 @@ My uptime at 30% battery:
 #+END_SRC
 which would get us to 5 hours and 27 minutes
 * Bonus round (changing brightness)
-So far, all of my changes have been based on imperceptible changes to my experience using the laptop. For funsies, I decided I should see what power usage I am at when I let powerdown reduce my backlight (which is automatically does on battery power, but I've been turning the backlight back to max).
+So far, all of my changes have been based on imperceptible changes to my experience using the laptop. For funsies, I decided I should see what power usage I am at when I let powerdown reduce my backlight (which it automatically does on battery power, but I've been turning the backlight back to max).
 #+BEGIN_SRC sh
   $ bc -l <<< "$(cat /sys/class/backlight/intel_backlight/brightness) / $(cat /sys/class/backlight/intel_backlight/max_brightness) * 100"
   20.00000000000000000000
