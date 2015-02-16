@@ -1,11 +1,11 @@
 #+BEGIN_COMMENT
-.. title: Escaping the Garden
+.. title: Escaping the Garden (Qt through premake)
 .. slug: escaping-the-garden
 .. date: 2015-02-16 13:12:49 UTC-08:00
 .. tags: qt,premake,c++
 .. category: 
 .. link: 
-.. description: 
+.. description: Invoking the Qt preprocessor moc through premake4
 .. type: text
 #+END_COMMENT
 
