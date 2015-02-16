@@ -70,6 +70,7 @@
     ("julia" . "julia")
     ("latex" . "latex")
     ("lisp" . "lisp")
+    ("lua" . "lua")
     ("makefile" . "makefile")
     ("matlab" . "matlab")
     ("mscgen" . "mscgen")

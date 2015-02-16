@@ -1,0 +1,78 @@
+#+BEGIN_COMMENT
+.. title: Escaping the Garden
+.. slug: escaping-the-garden
+.. date: 2015-02-16 13:12:49 UTC-08:00
+.. tags: qt,premake,c++
+.. category: 
+.. link: 
+.. description: 
+.. type: text
+#+END_COMMENT
+
+I generally am not a fan of frameworks. Instead, I tend to prefer tools that maximize my control, which results in a love of things like C++, Arch Linux, and toolkits. For a recent side project at work, I needed to create a GUI interface. In the past, I had used wxWidgets but I decided it was time to expand my horizons and try something else, so I tried [[http://qt-project.org/][Qt]], and I have to say its been amazing. Everything seems to flow so easily when writing GUIs in Qt. Unfortunately, Qt is very much a framework. Abandon your freedom of choice and never venture outside the walled garden and you will be happy.
+
+I, however, prefer to take the [[http://en.wikipedia.org/wiki/Red_pill_and_blue_pill][red pill]]. One of the first things you'll notice when moving to Qt is that they have their own makefile system called [[http://en.wikipedia.org/wiki/Qmake][qmake]]. This build system will ensure you have your Qt dependencies and will invoke Qt's [[http://doc.qt.io/qt-5/moc.html][Meta Object Compiler (moc)]]. (Thats right, Qt has its own preprocessor). My target in sight, I decided to claim a small victory against the garden and continue to use my build system of choice [[http://premake.bitbucket.org/][premake]].
+
+Premake is a build system built on top of Lua. This allows for great flexibility, since its a full scripting language rather than a DSL like CMake. In order to accomplish my task, I needed to override some functions in premake's gmake generator. It is worth noting that I am doing this in premake4, premake5 is currently in alpha and has standardized facilities for overriding functions.
+
+The Qt preprocessor parses through C header files and generates C source code files that need to be compiled into the final binary. For my purposes, the preparser was handling a C macro =Q_OBJECT=. This means that first I must identify files needing to be preprocessed. I decided my general structure would be:
+- src/ :: Original source code
+- moc/ :: Folder filled with generated code from the moc output
+
+So first I have a utility function to simply print a lua table out to the console that helps with debugging:
+#+BEGIN_SRC lua
+  function print_table(t)
+     for key,value in pairs(t) do print(key,value) end
+  end
+#+END_SRC
+and a function that will translate the path of a file from src/*.h to moc/*moc.cpp (moc postfix to prevent name collisions)
+#+BEGIN_SRC lua
+  function translate_file(path)
+     return string.gsub(string.gsub(path, "src/", "moc/"), ".h", "moc.cpp")
+  end
+#+END_SRC
+Now I'll need to identify the files that need to be preprocessed, so I iterate over the files line-by-line looking for =Q_OBJECT= as a substring. Since I am not actually parsing the C code there is a change that I could have a false positive in the form of comments or blocked removed by the real C Preprocessor but for my purposes I haven't run into the issue:
+#+BEGIN_SRC lua
+  function needs_preprocessing(path)
+     for line in io.lines(path) do
+        if string.find(line, "Q_OBJECT") ~= nil then
+           return true
+        end
+     end
+     return false
+  end
+#+END_SRC
+Now, due to the structure of premake and the order it executes functions I will need to do the actualy transformation in two steps:
+1. Generate prebuild commands that run the header files through =moc=
+2. Add the generated files to the list of source files for compilation
+It would be much cleaner if I could have done this all in one step, but that would involve editing premake.
+
+For the first step, I will overload =gmake_cpp_config()=. First I will need to save the current =gmake_cpp_config()= function, then I will replace it with my own function that will invoke the saved function.
+#+BEGIN_SRC lua
+  old_gmake_cpp_config = premake.gmake_cpp_config
+  -- Modify prebuild commands
+  premake.gmake_cpp_config = function(proj, cc)
+     for i,k in pairs(os.matchfiles("src/**.h")) do
+        if needs_preprocessing(k) then
+           processed_file = translate_file(k)
+           table.insert(proj.prebuildcommands, "mkdir -p $$(dirname " .. processed_file .. ") && moc -o " .. processed_file .. " " .. k)
+        end
+     end
+     old_gmake_cpp_config(proj, cc)
+  end
+#+END_SRC
+As you can see, I am iterating over the =src/= directory looking for header files and then executing =moc= on them if they need preprocessing. Now that we have the output files, we need to add them to the list of files to be compiled. This involves overriding =make_cpp()= in much the same way:
+#+BEGIN_SRC lua
+  old_make_cpp = premake.make_cpp
+  -- Modify files
+  premake.make_cpp = function(proj)
+     for i,k in pairs(os.matchfiles("src/**.h")) do
+        if needs_preprocessing(k) then
+           processed_file = translate_file(k)
+           table.insert(proj.files, processed_file)
+        end
+     end
+     old_make_cpp(proj)
+  end
+#+END_SRC
+After all that, I just need to make sure I link the proper Qt libraries to my project, and build! Yay freedom.
