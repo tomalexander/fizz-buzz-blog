@@ -64,7 +64,7 @@ In order to test this theory, I need to write a fork of the decompressor that us
 This is interesting in that mmap didn't create as significant of an improvement as I expected. I must not be IO pegged. The code for this change (which won't be merged into master, we will keep =mmap=) is available at [[https://github.com/tomalexander/fzcat/tree/read_instead_of_mmap]].
 ** single vs multiple files
 I think its safe to assume zcat is processing one file at a time, but pigz is a special threaded implementation of zlib so first I am going to investigate the pigz source code to see what its doing. First I downloaded the source tarball from [[http://zlib.net/pigz/]]. *NOTE* All code snippets from pigz that I include in this blog are under the pigz license. Upon inspection of the Makefile it looks like =pigz.c= is included in the final =pigz= binary so thats probably a good place to start looking. Inside =main()= there appears this block:
-#+BEGIN_SRC c
+#+BEGIN_SRC C
   /* process command-line arguments, no options after "--" */
   done = noop = 0;
   for (n = 1; n < argc; n++)
@@ -81,7 +81,7 @@ I think its safe to assume zcat is processing one file at a time, but pigz is a 
       }
 #+END_SRC
 This is looping through the arguments in order, and passing the args to =process()= which, would support that theory. Digging into process further we see a lot of setup and then these lines:
-#+BEGIN_SRC c
+#+BEGIN_SRC C
   /* process ind to outd */
   if (g.verbosity > 1)
       fprintf(stderr, "%s to %s ", g.inf, g.outf);

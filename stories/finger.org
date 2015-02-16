@@ -1,13 +1,16 @@
 #+BEGIN_COMMENT
 .. title: finger
 .. slug: finger
-.. date: 2015-02-15 22:39:33 UTC-08:00
 .. tags: 
 .. category: 
 .. link: 
 .. description: 
 .. type: text
+.. nocomments: True
 #+END_COMMENT
 
+My name is Tom Alexander. I am a Mobile Web Engineer at [[http://www.tripadvisor.com/][TripAdvisor]]. I completed my Bachelor's degree in Computer Science at [[http://www.cs.rpi.edu/][Rensselaer Polytechnic Institute]] in Spring 2013.
 
-Write your page here.
+- Github: https://github.com/tomalexander
+- SpammedIn: https://www.linkedin.com/profile/view?id=54167554
+- Email: [[mailto:paphus@gmail.com][paphus@gmail.com]]
