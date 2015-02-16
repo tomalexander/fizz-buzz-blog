@@ -4,6 +4,12 @@
       (load-file conf)))
 
 (require 'ox-html)
+(setq ox-htmlize-output nil)
+(defun org-html-fontify-code (code lang)
+  (if nikola-use-pygments
+      code
+    (org-html-encode-plain-text code)
+    ))
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((dot . t))) ; this line activates dot

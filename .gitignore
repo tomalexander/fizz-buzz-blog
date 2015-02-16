@@ -1,0 +1,6 @@
+files/assets/css/custom.css
+output/
+cache/
+.doit.db
+*.pyc
+plugins/__init__.py

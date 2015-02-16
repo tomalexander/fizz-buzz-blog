@@ -296,6 +296,7 @@ REDIRECTIONS = []
 # To do manual deployment, set it to []
 DEPLOY_COMMANDS = {
     "default": [
+        "mkdir -p files/assets/css && pygmentize -S emacs -a .highlight -f html > files/assets/css/custom.css",
         "nikola build",
         "rsync -avz --delete output/ paphus@paphus.com:~/fizz.buzz/",
     ]
