@@ -1,0 +1,13 @@
+#+BEGIN_COMMENT
+.. title: finger
+.. slug: finger
+.. date: 2015-02-15 22:39:33 UTC-08:00
+.. tags: 
+.. category: 
+.. link: 
+.. description: 
+.. type: text
+#+END_COMMENT
+
+
+Write your page here.

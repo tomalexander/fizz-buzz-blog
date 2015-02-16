@@ -158,3 +158,23 @@ My uptime at 30% battery:
    00:42:13 up  3:49,  0 users,  load average: 0.00, 0.03, 0.09
 #+END_SRC
 which would get us to 5 hours and 27 minutes
+* Bonus round (changing brightness)
+So far, all of my changes have been based on imperceptible changes to my experience using the laptop. For funsies, I decided I should see what power usage I am at when I let powerdown reduce my backlight (which is automatically does on battery power, but I've been turning the backlight back to max).
+#+BEGIN_SRC sh
+  $ bc -l <<< "$(cat /sys/class/backlight/intel_backlight/brightness) / $(cat /sys/class/backlight/intel_backlight/max_brightness) * 100"
+  20.00000000000000000000
+#+END_SRC
+Looks like powerdown is setting my brightness to 20% when I unplug my laptop. And now the powerstat:
+#+BEGIN_SRC text
+    Time    User  Nice   Sys  Idle    IO  Run Ctxt/s  IRQ/s Fork Exec Exit  Watts
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Average   0.3   0.0   0.1  99.6   0.0  1.1  127.0   38.6  0.1  0.0  0.3   4.43
+    StdDev   0.0   0.0   0.0   0.1   0.0  0.3   11.7    6.9  0.2  0.0  1.6   0.01
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+   Minimum   0.2   0.0   0.0  99.5   0.0  1.0  114.1   34.3  0.0  0.0  0.0   4.41
+   Maximum   0.4   0.0   0.1  99.7   0.1  2.0  172.4   70.8  1.0  0.0  9.0   4.44
+  -------- ----- ----- ----- ----- ----- ---- ------ ------ ---- ---- ---- ------
+  Summary:
+    4.43 Watts on Average with Standard Deviation 0.01 
+#+END_SRC
+So it seems that I could get considerable boosts to my battery life if I allow my brightness to be turned down, perhaps exceeding the advertised 8 hours of battery life that I am supposed to get on windows.
