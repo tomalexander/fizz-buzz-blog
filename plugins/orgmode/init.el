@@ -16,6 +16,7 @@
 
 ;;; Add any custom configuration that you would like to 'conf.el'.
 (setq
+ nikola-use-pygments t
  org-export-with-toc nil
  org-export-with-section-numbers nil
  org-startup-folded 'showeverything)
@@ -38,6 +39,16 @@
 ;;; Code highlighting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Use pygments highlighting for code
+(defun pygmentize (lang code)
+  "Use Pygments to highlight the given code and return the output"
+  (with-temp-buffer
+    (insert code)
+    (let ((lang (or (cdr (assoc lang org-pygments-language-alist)) "text")))
+      (shell-command-on-region (point-min) (point-max)
+                               (format "pygmentize -f html -g -l %s" lang)
+                               (buffer-name) t))
+
+    (buffer-string)))
 
 
 (defconst org-pygments-language-alist
@@ -83,29 +94,25 @@ See: http://orgmode.org/worg/org-contrib/babel/languages.html and
 http://pygments.org/docs/lexers/ for adding new languages to the
 mapping. ")
 
+;; Override the html export function to use pygments
+(defun org-html-src-block (src-block contents info)
+  "Transcode a SRC-BLOCK element from Org to HTML.
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
+  (if (org-export-read-attribute :attr_html src-block :textarea)
+      (org-html--textarea-block src-block)
+    (let ((lang (org-element-property :language src-block))
+	  (code (org-html-format-code src-block info)))
+      (if nikola-use-pygments
+          (pygmentize lang code)
+        code))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Export function used by Nikola.
 (defun nikola-html-export (infile outfile)
   "Export the body only of the input file and write it to
 specified location."
-
-  (require 'ox-html)
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((dot . t))) ; this line activates dot
-  (defun my-org-confirm-babel-evaluate (lang body)
-    (not (string= lang "dot")))  ; don't ask for ditaa
-  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
-  (defun my-html-filter-files (text backend info)
-    "Fix image path"
-    (when (org-export-derived-backend-p backend 'html)
-      (replace-regexp-in-string "../files/" "../" text)
-      ))
-  
-  (add-to-list 'org-export-filter-link-functions
-               'my-html-filter-files)
-
 
   (with-current-buffer (find-file infile)
     (org-macro-replace-all nikola-macro-templates)
